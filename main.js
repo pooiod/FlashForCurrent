@@ -4,6 +4,8 @@
     const FLASH_DOMAINS = ["scratchflash.pages.dev", "flashloader.pages.dev"];
     var hasPrompted = false;
 
+    window.HasFlashForCurrent = true;
+
     let isFlashMode = false, ws = null, imgElement = null, miniLoader = null, fullPageLoader = null, firstSyncDone = false;
 
     function isFlash() {
@@ -26,7 +28,7 @@
 
         miniLoader = document.createElement('div');
         miniLoader.className = 'spinner mini';
-        miniLoader.style = "position:fixed;bottom:20px;right:20px;z-index:99998;display:none;";
+        miniLoader.style = "position:fixed;bottom:20px;right:20px;z-index:99998;display:none;bottom:-40px;";
 
         const style = document.createElement('style');
         style.innerHTML = `
