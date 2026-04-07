@@ -9,17 +9,80 @@
 
     window.HasFlashForCurrent = true;
 
-    let style = getComputedStyle(document.body).backgroundColor;
-    if (!style || style === "transparent" || style === "rgba(0, 0, 0, 0)") {
-        style = "rgb(255,255,255)";
-    } else if (style.startsWith("rgba")) {
-        let parts = style.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*(\d+\.?\d*)\)/);
-        let r = Math.round(255 * (1 - parseFloat(parts[4])) + parseInt(parts[1]) * parseFloat(parts[4]));
-        let g = Math.round(255 * (1 - parseFloat(parts[4])) + parseInt(parts[2]) * parseFloat(parts[4]));
-        let b = Math.round(255 * (1 - parseFloat(parts[4])) + parseInt(parts[3]) * parseFloat(parts[4]));
-        style = `rgb(${r},${g},${b})`;
-    }
-    window.PageBackgroundColor = style;
+    const getThemeColors = () => {
+        let style = getComputedStyle(document.body).backgroundColor;
+        if (!style || style === "transparent" || style === "rgba(0, 0, 0, 0)") {
+            style = "rgb(255,255,255)";
+        } else if (style.startsWith("rgba")) {
+            let parts = style.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*(\d+\.?\d*)\)/);
+            let r = Math.round(255 * (1 - parseFloat(parts[4])) + parseInt(parts[1]) * parseFloat(parts[4]));
+            let g = Math.round(255 * (1 - parseFloat(parts[4])) + parseInt(parts[2]) * parseFloat(parts[4]));
+            let b = Math.round(255 * (1 - parseFloat(parts[4])) + parseInt(parts[3]) * parseFloat(parts[4]));
+            style = `rgb(${r},${g},${b})`;
+        }
+
+        const bgColor = style;
+        const tempElem = document.createElement("div");
+        tempElem.style.color = bgColor;
+        document.body.appendChild(tempElem);
+        const rgbStyle = window.getComputedStyle(tempElem).color;
+        document.body.removeChild(tempElem);
+
+        const rgbValues = rgbStyle.match(/\d+/g).map(Number);
+        const r = rgbValues[0] / 255;
+        const g = rgbValues[1] / 255;
+        const b = rgbValues[2] / 255;
+
+        const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        const textColor = luminance > 0.5 ? "#000000" : "#ffffff";
+
+        const max = Math.max(r, g, b), min = Math.min(r, g, b);
+        let h, s, l = (max + min) / 2;
+
+        if (max === min) {
+            h = s = 0;
+        } else {
+            const d = max - min;
+            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+            switch (max) {
+                case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                case g: h = (b - r) / d + 2; break;
+                case b: h = (r - g) / d + 4; break;
+            }
+            h /= 6;
+        }
+
+        h *= 360;
+        s *= 100;
+        l *= 100;
+
+        let accentHue = (h + 180) % 360;
+        let accentSat = s < 10 ? 75 : Math.min(s + 20, 100);
+        let accentLight;
+
+        if (l > 70) {
+            accentLight = 40;
+        } else if (l < 30) {
+            accentLight = 70;
+        } else {
+            accentLight = l > 50 ? l - 30 : l + 30;
+        }
+
+        if (s < 10) {
+            accentHue = 210;
+            accentSat = 80;
+        }
+
+        const accentColor = `hsl(${Math.round(accentHue)}, ${Math.round(accentSat)}%, ${Math.round(accentLight)}%)`;
+
+        return {
+            background: bgColor,
+            accent: accentColor,
+            text: textColor
+        };
+    };
+
+    const theme = getThemeColors();
 
     let isFlashMode = false, ws_stream = null, ws_input = null, canvasElement = null, ctx = null, miniLoader = null, fullPageLoader = null, firstSyncDone = false;
     let nextFrameMeta = { x: 0, y: 0 };
@@ -33,21 +96,21 @@
 
     function initStreaming() {
         isFlashMode = true; document.body.innerHTML = "";
-        document.body.style = `margin:0;background:${window.PageBackgroundColor};overflow:hidden;user-select:none;-webkit-user-select:none;`;
+        document.body.style = `margin:0;background:${theme.background};overflow:hidden;user-select:none;-webkit-user-select:none;`;
 
         canvasElement = document.createElement('canvas');
-        canvasElement.style = `width:100vw;height:100vh;pointer-events:none;display:block;background:${window.PageBackgroundColor};`;
+        canvasElement.style = `width:100vw;height:100vh;pointer-events:none;display:block;background:${theme.background};`;
         canvasElement.width = window.innerWidth;
         canvasElement.height = window.innerHeight;
 
         ctx = canvasElement.getContext('2d', { alpha: false });
 
-        ctx.fillStyle = window.PageBackgroundColor;
+        ctx.fillStyle = theme.background;
         ctx.fillRect(0, 0, canvasElement.width, canvasElement.height);
 
         fullPageLoader = document.createElement('div');
-        fullPageLoader.style = "position:fixed;top:0;left:0;width:100vw;height:100vh;background:#fff;z-index:99999;display:none;flex-direction:column;justify-content:center;align-items:center;font-family:sans-serif;";
-        fullPageLoader.innerHTML = `<div class='spinner'></div><div style='margin-top:20px;color:#333'>Loading page...</div>`;
+        fullPageLoader.style = `position:fixed;top:0;left:0;width:100vw;height:100vh;background:${theme.background};z-index:99999;display:none;flex-direction:column;justify-content:center;align-items:center;font-family:sans-serif;`;
+        fullPageLoader.innerHTML = `<div class='spinner'></div><div style='margin-top:20px;color:${theme.text}'>Loading page...</div>`;
 
         miniLoader = document.createElement('div');
         miniLoader.className = 'spinner mini';
@@ -56,7 +119,7 @@
         const style = document.createElement('style');
         style.innerHTML = `
             @keyframes s { to { transform: rotate(360deg); } }
-            .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; animation: s 1s linear infinite; }
+            .spinner { width: 40px; height: 40px; border: 4px solid #00000000; border-top: 4px solid ${theme.accent}; border-radius: 50%; animation: s 1s linear infinite; }
             .spinner.mini { width: 25px; height: 25px; border-width: 3px; }
         `;
         document.head.appendChild(style);
@@ -75,7 +138,7 @@
                 if (canvasElement) {
                     canvasElement.width = window.innerWidth;
                     canvasElement.height = window.innerHeight;
-                    ctx.fillStyle = window.PageBackgroundColor;
+                    ctx.fillStyle = theme.background;
                     ctx.fillRect(0, 0, canvasElement.width, canvasElement.height);
                 }
                 fetch(`${API_BASE}/set_size`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ width: window.innerWidth, height: window.innerHeight }) });
