@@ -186,6 +186,14 @@
             gap: 15px;
             justify-content: center;
         }
+
+        .unable {
+            background: linear-gradient(to bottom, #dddee0 0%, #c2c7ce 100%);
+            color: #1e5799;
+            border: 1px solid #cbd5e0;
+            cursor: not-allowed;
+            text-shadow: none;
+        }
     </style>
 </head>
 
@@ -196,85 +204,33 @@
         </div>
 
         <main>
-            <h1 class="h-flash">Downloads</h1>
+            <h1 class="h-flash">Extensions</h1>
 
             <div class="download-list">
                 <div class="download-item">
                     <div class="download-info">
-                        <h3>Userscript</h3>
-                        <p>Best for Tampermonkey/Violentmonkey users.</p>
+                        <h3>Chrome</h3>
                     </div>
                     <div class="download-actions">
-                        <button onclick="downloadItem('/script.user.js', 'script')"
-                            class="flash-pill-btn btn-alt">Download .js</button>
+                        <button onclick="downloadItem('')" class="flash-pill-btn btn-alt unable">Open chrome web store</button>
                     </div>
                 </div>
 
                 <div class="download-item">
                     <div class="download-info">
-                        <h3>Browser Extension</h3>
-                        <p>Best for anyone who does not want to use a userscript agent.</p>
+                        <h3>Firefox</h3>
                     </div>
                     <div class="download-actions">
-                        <button onclick="downloadItem('/ext', 'extension')" class="flash-pill-btn btn-alt">Download Ext</button>
+                        <button onclick="downloadItem('')" class="flash-pill-btn btn-alt unable">Open firefox addon page</button>
                     </div>
                 </div>
-
-                <div class="download-item">
-                    <div class="download-info">
-                        <h3>Helper App</h3>
-                        <p>This runs Pepper Flash in a sandbox.</p>
-                    </div>
-                    <div class="download-actions">
-                        <button onclick="downloadItem('https://github.com/pooiod/FlashForCurrent/releases/latest', 'helper')" class="flash-pill-btn btn-alt">Download app</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="req-notice">
-                All versions require the Helper App to be installed and running for flash to work
             </div>
         </main>
     </div>
 
-    <div id="helper-popup">
-        <div class="popup-content">
-            <h2>Helper App Required</h2>
-            <p>You've downloaded half the project. <br>FlashForCurrent also needs the helper app to work</p>
-            <div class="popup-actions">
-                <button onclick="downloadItem('https://github.com/pooiod/FlashForCurrent/releases/latest', 'helper'); closePopup();" class="flash-pill-btn">Download</button>
-                <button onclick="closePopup()" class="flash-pill-btn btn-alt">Nah</button>
-            </div>
-        </div>
-    </div>
-
     <script>
-        function downloadItem(url, type) {
-            const width = 800;
-            const height = 600;
-            const left = (window.innerWidth / 2) - (width / 2);
-            const top = (window.innerHeight / 2) - (height / 2);
-
-            window.open(url, '_blank', `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes`);
-
-            if (type === 'script' || type === 'extension') {
-                showHelperPopup();
-            }
-        }
-
-        function showHelperPopup() {
-            document.getElementById('helper-popup').style.display = 'flex';
-        }
-
-        function closePopup() {
-            document.getElementById('helper-popup').style.display = 'none';
-        }
-
-        window.onclick = function (event) {
-            const modal = document.getElementById('helper-popup');
-            if (event.target == modal) {
-                closePopup();
-            }
+        function downloadItem(url) {
+            window.location.href = url;
         }
     </script>
 </body>

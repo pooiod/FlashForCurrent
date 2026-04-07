@@ -13,6 +13,7 @@
             margin: 0;
             padding: 0;
             height: 100%;
+            scrollbar-color: #aab4c2 #e5ebf1;
         }
 
         #page-wrapper {
@@ -228,7 +229,7 @@
         <nav id="main-nav" class="nav-at-top">
             <div class="nav-inner">
                 <div class="logo">FlashForCurrent</div>
-                <a href="/downloads" class="flash-pill-btn " style="font-size: 0.75rem; padding: 10px 20px;">Downloads</a>
+                <a href="/downloads" class="flash-pill-btn" style="font-size: 0.75rem; padding: 10px 20px;">Download</a>
             </div>
         </nav>
 
@@ -239,7 +240,10 @@
                     Emulation is great, but compatibility is still lacking.
                     FlashForCurrent brings the original Pepper Flash engine directly to your browser.
                 </p>
-                <a href="/downloads" class="flash-pill-btn btn-large">Download now</a>
+                <div>
+                    <a href="/downloads" class="flash-pill-btn btn-large" style="width: 200px;">Download now</a>
+                    <a href="/test" id="testflashplayer" class="flash-pill-btn btn-large" style="display: none; width: 200px; margin-left: 10px;">Test player</a>
+                </div>
             </section>
 
             <div class="flash-panel">
@@ -310,6 +314,10 @@
         window.addEventListener('DOMContentLoaded', () => {
             const glassMap = document.getElementById('glass-map');
             if(glassMap) glassMap.setAttribute('href', generateMap(256));
+
+            if (window.HasFlashForCurrent || (navigator.plugins && navigator.plugins["Shockwave Flash"]) || window.RufflePlayer) {
+                document.getElementById('testflashplayer').style.display = "";
+            }
         });
 
         window.addEventListener('scroll', handleScroll);
