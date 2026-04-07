@@ -19,6 +19,8 @@
         return !!document.querySelector('object, embed[type*="flash"], img[alt*="Get Flash" i]');
     }
 
+    window.HasFlashForCurrent = true;
+
     const style = document.createElement('style');
     style.textContent = `
         #dynamic-script-loader-34924 {

@@ -5,17 +5,68 @@ import json
 import time
 import base64
 import tempfile
+import ctypes
+import subprocess
+from ctypes import wintypes
 
 os.environ["QT_WEBENGINE_DISABLE_TSF"] = "1"
+
+def drop_privileges_and_restart():
+    if "--sandboxed" in sys.argv:
+        return 
+
+    print("Restarting in a restricted sandbox...")
+
+    exe = sys.executable
+    args = [exe] + sys.argv + ["--sandboxed"]
+
+    p = subprocess.Popen(args)
+    sys.exit(p.wait())
+
+def apply_low_integrity():
+    if sys.platform != 'win32': return
+    try:
+        advapi32 = ctypes.WinDLL('advapi32', use_last_error=True)
+        GetCurrentProcess = ctypes.WinDLL('kernel32').GetCurrentProcess
+        OpenProcessToken = advapi32.OpenProcessToken
+        SetTokenInformation = advapi32.SetTokenInformation
+        
+        TOKEN_ADJUST_DEFAULT = 0x0080
+        TOKEN_ADJUST_SESSIONID = 0x0100
+        TOKEN_QUERY = 0x0008
+        TOKEN_ADJUST_PRIVILEGES = 0x0020
+        
+        hToken = wintypes.HANDLE()
+        OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_DEFAULT | TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, ctypes.byref(hToken))
+
+        sid_string = ctypes.c_wchar_p("S-1-16-4096")
+        pSid = ctypes.c_void_p()
+        advapi32.ConvertStringSidToSidW(sid_string, ctypes.byref(pSid))
+        
+        class TOKEN_MANDATORY_LABEL(ctypes.Structure):
+            _fields_ = [("Label", ctypes.c_void_p)] 
+            
+        tml = TOKEN_MANDATORY_LABEL()
+
+        advapi32.SetTokenInformation(hToken, 25, ctypes.byref(tml), ctypes.sizeof(tml))
+        ctypes.WinDLL('kernel32').CloseHandle(hToken)
+    except Exception as e:
+        print(f"Sandbox restriction note: {e}")
+
+
+if sys.platform == 'win32' and "--sandboxed" not in sys.argv:
+    drop_privileges_and_restart()
+elif sys.platform == 'win32':
+    apply_low_integrity()
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
-from PyQt5 import QtCore
-from PyQt5.QtCore import QUrl, QCoreApplication, Qt, pyqtSignal, QObject, QPoint, QPointF, pyqtSlot, QDir
+from PyQt5 import QtCore, QtGui
+from PyQt5.QtCore import QUrl, QCoreApplication, Qt, pyqtSignal, QObject, QPoint, QPointF, pyqtSlot, QDir, QRect
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QFrame, QLabel, QPushButton, 
                              QLineEdit, QVBoxLayout, QHBoxLayout, QDesktopWidget)
-from PyQt5.QtGui import QMouseEvent, QKeyEvent, QWheelEvent, QIcon
+from PyQt5.QtGui import QMouseEvent, QKeyEvent, QWheelEvent, QIcon, QImage
 from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineSettings, QWebEnginePage
 from PyQt5.QtWebSockets import QWebSocketServer
 from PyQt5.QtNetwork import QHostAddress
@@ -27,7 +78,8 @@ if not os.path.exists(FLASH_PATH):
 
 FLASH_VERSION = "32.0.0.371"
 API_PORT = 48753
-WS_PORT = 48754
+WS_PORT_STREAM = 48754
+WS_PORT_INPUT = 48755
 
 class AppBridge(QObject):
     spawn_window_signal = pyqtSignal()
@@ -41,9 +93,9 @@ class WebDialog(QFrame):
     def __init__(self, parent, dtype, msg, default_text=""):
         super().__init__(parent)
         self.setStyleSheet("""
-            QFrame { background: #2c3e50; color: white; border-radius: 8px; border: 2px solid #34495e; }
-            QPushButton { background: #3498db; color: white; border-radius: 4px; padding: 6px 15px; font-weight: bold; min-width: 60px;}
-            QLineEdit { background: #1a252f; color: white; border: 1px solid #7f8c8d; border-radius: 4px; padding: 6px; }
+            QFrame { background: 
+            QPushButton { background: 
+            QLineEdit { background: 
         """)
         self.result, self.text_result = False, ""
         self.loop = QtCore.QEventLoop()
@@ -74,7 +126,7 @@ class CustomWebPage(QWebEnginePage):
     def javaScriptPrompt(self, securityOrigin, msg, defaultText):
         dlg = WebDialog(self.view().window(), 'prompt', msg, defaultText); dlg.loop.exec_(); res, txt = dlg.result, dlg.text_result; dlg.deleteLater(); return (True, txt) if res else (False, "")
     def chooseFiles(self, mode, oldFiles, acceptedMimeTypes):
-        for c in active_handlers: c.client.sendTextMessage(json.dumps({"type": "request_upload"}))
+        for c in active_input_handlers: c.client.sendTextMessage(json.dumps({"type": "request_upload"}))
         self.upload_loop = QtCore.QEventLoop(); self.upload_paths = []; self.upload_loop.exec_()
         return self.upload_paths
 
@@ -94,6 +146,8 @@ class FlashBrowser(QMainWindow):
         self.browser = QWebEngineView(self)
         self.page = CustomWebPage(self.browser.page().profile(), self.browser)
         self.browser.setPage(self.page)
+        self.last_full_frame_time = 0
+        self.last_frame_img = None
         
         settings = self.browser.settings()
         settings.setAttribute(QWebEngineSettings.PluginsEnabled, True)
@@ -118,7 +172,7 @@ class FlashBrowser(QMainWindow):
             with open(item.path(), 'rb') as f:
                 b64 = base64.b64encode(f.read()).decode('utf-8')
             msg = json.dumps({"type": "download_file", "filename": self.active_downloads[item], "data": b64})
-            for handler in active_handlers:
+            for handler in active_input_handlers:
                 handler.client.sendTextMessage(msg)
             try:
                 os.remove(item.path())
@@ -142,11 +196,89 @@ class FlashBrowser(QMainWindow):
             self.page.last_cursor = cur
             shape_map = {0: "default", 2: "crosshair", 3: "pointer", 4: "move", 10: "none", 13: "text", 14: "wait", 15: "move", 17: "not-allowed", 18: "grab"}
             msg = json.dumps({"type": "cursor", "value": shape_map.get(cur, "default")})
-            for c in active_handlers:
+            for c in active_input_handlers:
                 try: c.client.sendTextMessage(msg)
                 except: pass
 
-class WSClientHandler(QObject):
+def get_diff_rect(img1, img2):
+    if img1.size() != img2.size():
+        return QRect(0, 0, img2.width(), img2.height())
+    
+    b1 = img1.bits().asstring(img1.byteCount())
+    b2 = img2.bits().asstring(img2.byteCount())
+    if b1 == b2:
+        return None
+        
+    w = img1.width()
+    h = img1.height()
+    bpl = img1.bytesPerLine()
+    
+    min_y = 0
+    for y in range(h):
+        idx = y * bpl
+        if b1[idx:idx+bpl] != b2[idx:idx+bpl]:
+            min_y = y
+            break
+            
+    max_y = h - 1
+    for y in range(h - 1, min_y - 1, -1):
+        idx = y * bpl
+        if b1[idx:idx+bpl] != b2[idx:idx+bpl]:
+            max_y = y
+            break
+            
+    return QRect(0, min_y, w, max_y - min_y + 1)
+
+class WSStreamHandler(QObject):
+    def __init__(self, client):
+        super().__init__()
+        self.client = client
+        self.client.textMessageReceived.connect(self.process_message)
+        
+    @pyqtSlot(str)
+    def process_message(self, msg):
+        global window
+        if not window: return
+        try:
+            data = json.loads(msg); t = data.get('type')
+            if t == 'get_frame' and not window.grabbing_frame:
+                window.grabbing_frame = True
+                now = time.time()
+                pix = window.grab()
+                img = pix.toImage().convertToFormat(QImage.Format_RGB32)
+                
+                is_full = (now - window.last_full_frame_time) >= 1.0 or window.last_frame_img is None or window.last_frame_img.size() != img.size()
+                
+                rect = None
+                if not is_full:
+                    rect = get_diff_rect(window.last_frame_img, img)
+                    if rect is None:
+                        self.client.sendTextMessage(json.dumps({"type": "no_change"}))
+                        window.grabbing_frame = False
+                        return
+                else:
+                    rect = QRect(0, 0, img.width(), img.height())
+                    window.last_full_frame_time = now
+                    
+                window.last_frame_img = img
+                cropped = img.copy(rect)
+                
+                ba = QtCore.QByteArray()
+                buf = QtCore.QBuffer(ba)
+                buf.open(QtCore.QIODevice.WriteOnly)
+                cropped.save(buf, "JPEG", 70)
+                
+                self.client.sendTextMessage(json.dumps({
+                    "type": "frame_meta", 
+                    "x": rect.x(), 
+                    "y": rect.y()
+                }))
+                self.client.sendBinaryMessage(ba)
+                window.grabbing_frame = False
+        except Exception as e:
+            if window: window.grabbing_frame = False
+
+class WSInputHandler(QObject):
     def __init__(self, client):
         super().__init__()
         self.client = client
@@ -160,11 +292,8 @@ class WSClientHandler(QObject):
             w, h = window.width(), window.height()
             pos = QPoint(int(data.get('x_pct', 0) * w), int(data.get('y_pct', 0) * h))
             target = QApplication.widgetAt(window.mapToGlobal(pos)) or window.browser.focusProxy()
-            if t == 'get_frame' and not window.grabbing_frame:
-                window.grabbing_frame = True
-                pix = window.grab(); ba = QtCore.QByteArray(); buf = QtCore.QBuffer(ba); buf.open(QtCore.QIODevice.WriteOnly)
-                pix.save(buf, "JPEG", 70); self.client.sendBinaryMessage(ba); window.grabbing_frame = False
-            elif t == 'mouse_move': QCoreApplication.postEvent(target, QMouseEvent(QtCore.QEvent.MouseMove, pos, pos, Qt.NoButton, Qt.NoButton, Qt.NoModifier))
+            
+            if t == 'mouse_move': QCoreApplication.postEvent(target, QMouseEvent(QtCore.QEvent.MouseMove, pos, pos, Qt.NoButton, Qt.NoButton, Qt.NoModifier))
             elif t == 'mouse_click':
                 btn = {0: Qt.LeftButton, 1: Qt.MiddleButton, 2: Qt.RightButton}.get(data['button'], Qt.LeftButton)
                 evt = QtCore.QEvent.MouseButtonPress if data['act'] == 'mousedown' else QtCore.QEvent.MouseButtonRelease
@@ -185,20 +314,28 @@ class WSClientHandler(QObject):
                 temp_p = os.path.join(tempfile.gettempdir(), data['filename'])
                 with open(temp_p, 'wb') as f: f.write(base64.b64decode(data['data']))
                 if hasattr(window.page, 'upload_loop'): window.page.upload_paths = [temp_p]; window.page.upload_loop.quit()
-        except:
-            if window: window.grabbing_frame = False
+        except: pass
 
-window, last_heartbeat, active_handlers = None, time.time(), []
+window, last_heartbeat = None, time.time()
+active_stream_handlers, active_input_handlers = [], []
+
 def check_heartbeat():
     global window
     while True:
         time.sleep(5)
-        if window and (time.time() - last_heartbeat > 60): bridge.close_signal.emit()
-def on_new_connection():
-    client = ws_server.nextPendingConnection()
+        if window and (time.time() - last_heartbeat > 80): bridge.close_signal.emit()
+
+def on_new_stream_connection():
+    client = ws_server_stream.nextPendingConnection()
     if client:
-        handler = WSClientHandler(client); active_handlers.append(handler)
-        client.disconnected.connect(lambda: active_handlers.remove(handler) if handler in active_handlers else None)
+        handler = WSStreamHandler(client); active_stream_handlers.append(handler)
+        client.disconnected.connect(lambda: active_stream_handlers.remove(handler) if handler in active_stream_handlers else None)
+
+def on_new_input_connection():
+    client = ws_server_input.nextPendingConnection()
+    if client:
+        handler = WSInputHandler(client); active_input_handlers.append(handler)
+        client.disconnected.connect(lambda: active_input_handlers.remove(handler) if handler in active_input_handlers else None)
 
 bridge.spawn_window_signal.connect(lambda: globals().update(window=FlashBrowser()) or window.show() if not window else None)
 bridge.close_signal.connect(lambda: (window.close(), globals().update(window=None)) if window else None)
@@ -224,12 +361,20 @@ def api_clear_redirect():
     return jsonify({"status": "ok"})
 
 if __name__ == "__main__":
-    sys.argv.extend([f"--ppapi-flash-path={FLASH_PATH}", f"--ppapi-flash-version={FLASH_VERSION}", "--no-sandbox", "--allow-outdated-plugins", "--disable-features=TextServicesFramework,TSF"])
+    if "--sandboxed" in sys.argv: sys.argv.remove("--sandboxed")
+    
+    sys.argv.extend([f"--ppapi-flash-path={FLASH_PATH}", f"--ppapi-flash-version={FLASH_VERSION}", "--allow-outdated-plugins", "--disable-features=TextServicesFramework,TSF"])
+    
     QCoreApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
     app = QApplication(sys.argv)
     QWebEngineSettings.globalSettings().setAttribute(QWebEngineSettings.PluginsEnabled, True)
-    ws_server = QWebSocketServer("FlashSyncWS", QWebSocketServer.NonSecureMode)
-    if ws_server.listen(QHostAddress.LocalHost, WS_PORT): ws_server.newConnection.connect(on_new_connection)
+    
+    ws_server_stream = QWebSocketServer("FlashStreamWS", QWebSocketServer.NonSecureMode)
+    if ws_server_stream.listen(QHostAddress.LocalHost, WS_PORT_STREAM): ws_server_stream.newConnection.connect(on_new_stream_connection)
+    
+    ws_server_input = QWebSocketServer("FlashInputWS", QWebSocketServer.NonSecureMode)
+    if ws_server_input.listen(QHostAddress.LocalHost, WS_PORT_INPUT): ws_server_input.newConnection.connect(on_new_input_connection)
+    
     threading.Thread(target=lambda: app_flask.run(host='localhost', port=API_PORT, debug=False, use_reloader=False), daemon=True).start()
     threading.Thread(target=check_heartbeat, daemon=True).start()
     sys.exit(app.exec_())

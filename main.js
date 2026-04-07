@@ -1,12 +1,28 @@
 (function () {
     'use strict';
-    const API_BASE = "http://localhost:48753", WS_URL = "ws://localhost:48754";
+
+    const API_BASE = "http://localhost:48753";
+    const WS_URL_STREAM = "ws://localhost:48754";
+    const WS_URL_INPUT = "ws://localhost:48755";
     const FLASH_DOMAINS = ["scratchflash.pages.dev", "flashloader.pages.dev"];
     var hasPrompted = false;
 
     window.HasFlashForCurrent = true;
 
-    let isFlashMode = false, ws = null, imgElement = null, miniLoader = null, fullPageLoader = null, firstSyncDone = false;
+    let style = getComputedStyle(document.body).backgroundColor;
+    if (!style || style === "transparent" || style === "rgba(0, 0, 0, 0)") {
+        style = "rgb(255,255,255)";
+    } else if (style.startsWith("rgba")) {
+        let parts = style.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*(\d+\.?\d*)\)/);
+        let r = Math.round(255 * (1 - parseFloat(parts[4])) + parseInt(parts[1]) * parseFloat(parts[4]));
+        let g = Math.round(255 * (1 - parseFloat(parts[4])) + parseInt(parts[2]) * parseFloat(parts[4]));
+        let b = Math.round(255 * (1 - parseFloat(parts[4])) + parseInt(parts[3]) * parseFloat(parts[4]));
+        style = `rgb(${r},${g},${b})`;
+    }
+    window.PageBackgroundColor = style;
+
+    let isFlashMode = false, ws_stream = null, ws_input = null, canvasElement = null, ctx = null, miniLoader = null, fullPageLoader = null, firstSyncDone = false;
+    let nextFrameMeta = { x: 0, y: 0 };
 
     function isFlash() {
         if (FLASH_DOMAINS.includes(window.location.hostname)) return true;
@@ -17,10 +33,17 @@
 
     function initStreaming() {
         isFlashMode = true; document.body.innerHTML = "";
-        document.body.style = "margin:0;background:#fff;overflow:hidden;user-select:none;-webkit-user-select:none;";
+        document.body.style = `margin:0;background:${window.PageBackgroundColor};overflow:hidden;user-select:none;-webkit-user-select:none;`;
 
-        imgElement = document.createElement('img');
-        imgElement.style = "width:100vw;height:100vh;object-fit:fill;transition:filter 0.3s ease;pointer-events:none;";
+        canvasElement = document.createElement('canvas');
+        canvasElement.style = `width:100vw;height:100vh;pointer-events:none;display:block;background:${window.PageBackgroundColor};`;
+        canvasElement.width = window.innerWidth;
+        canvasElement.height = window.innerHeight;
+
+        ctx = canvasElement.getContext('2d', { alpha: false });
+
+        ctx.fillStyle = window.PageBackgroundColor;
+        ctx.fillRect(0, 0, canvasElement.width, canvasElement.height);
 
         fullPageLoader = document.createElement('div');
         fullPageLoader.style = "position:fixed;top:0;left:0;width:100vw;height:100vh;background:#fff;z-index:99999;display:none;flex-direction:column;justify-content:center;align-items:center;font-family:sans-serif;";
@@ -37,61 +60,108 @@
             .spinner.mini { width: 25px; height: 25px; border-width: 3px; }
         `;
         document.head.appendChild(style);
-        document.body.append(imgElement, fullPageLoader, miniLoader);
+        document.body.append(canvasElement, fullPageLoader, miniLoader);
 
-        setupWebSocket(); setupInputs(); syncUrl();
+        setupStreamWS();
+        setupInputWS();
+        setupInputs();
+        syncUrl();
     }
 
     function syncUrl() {
         fetch(`${API_BASE}/set_url`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: window.location.href }) })
             .then(() => {
                 firstSyncDone = true;
+                if (canvasElement) {
+                    canvasElement.width = window.innerWidth;
+                    canvasElement.height = window.innerHeight;
+                    ctx.fillStyle = window.PageBackgroundColor;
+                    ctx.fillRect(0, 0, canvasElement.width, canvasElement.height);
+                }
                 fetch(`${API_BASE}/set_size`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ width: window.innerWidth, height: window.innerHeight }) });
             });
     }
 
-    function setupWebSocket() {
-        if (ws) ws.close();
-        ws = new WebSocket(WS_URL); ws.binaryType = "blob";
-        ws.onmessage = (e) => {
-            if (e.data instanceof Blob) {
-                const url = URL.createObjectURL(e.data);
-                imgElement.src = url;
-                imgElement.onload = () => { URL.revokeObjectURL(url); if (document.hasFocus()) ws.send(JSON.stringify({ type: 'get_frame' })); };
-            } else {
+    function setupStreamWS() {
+        if (ws_stream) {
+            ws_stream.onclose = null;
+            if (ws_stream.readyState !== WebSocket.CLOSED) ws_stream.close();
+        }
+
+        ws_stream = new WebSocket(WS_URL_STREAM);
+        ws_stream.binaryType = "blob";
+
+        ws_stream.onmessage = (e) => {
+            if (typeof e.data === "string") {
                 const data = JSON.parse(e.data);
-                if (data.type === 'cursor') document.body.style.cursor = data.value;
-                if (data.type === 'download_file') {
-                    if (!document.hasFocus()) return;
-                    const link = document.createElement('a');
-                    link.style.display = 'none';
-                    link.href = "data:application/octet-stream;base64," + data.data;
-                    link.download = data.filename;
-                    document.body.appendChild(link);
-                    link.click();
-                    setTimeout(() => link.remove(), 100);
+                if (data.type === 'frame_meta') {
+                    nextFrameMeta = { x: data.x, y: data.y };
+                } else if (data.type === 'no_change') {
+                    if (document.hasFocus() && ws_stream.readyState === 1) ws_stream.send(JSON.stringify({ type: 'get_frame' }));
                 }
-                if (data.type === 'request_upload') {
-                    const input = document.createElement('input'); input.type = 'file';
-                    input.onchange = () => {
-                        if (!input.files[0]) return;
-                        const r = new FileReader();
-                        r.onload = () => ws.send(JSON.stringify({ type: 'file_upload', filename: input.files[0].name, data: r.result.split(',')[1] }));
-                        r.readAsDataURL(input.files[0]);
-                    };
-                    input.click();
-                }
+            } else if (e.data instanceof Blob) {
+                const url = URL.createObjectURL(e.data);
+                const img = new Image();
+                img.onload = () => {
+                    ctx.drawImage(img, nextFrameMeta.x, nextFrameMeta.y);
+                    URL.revokeObjectURL(url);
+                    if (document.hasFocus() && ws_stream.readyState === 1) ws_stream.send(JSON.stringify({ type: 'get_frame' }));
+                };
+                img.src = url;
             }
         };
-        ws.onopen = () => ws.send(JSON.stringify({ type: 'get_frame' }));
-        ws.onclose = () => { if (isFlashMode) setTimeout(setupWebSocket, 1000); };
+
+        ws_stream.onopen = () => ws_stream.send(JSON.stringify({ type: 'get_frame' }));
+        ws_stream.onclose = () => { if (isFlashMode) setTimeout(setupStreamWS, 1000); };
+        ws_stream.onerror = () => { ws_stream.close(); };
+    }
+
+    function setupInputWS() {
+        if (ws_input) {
+            ws_input.onclose = null;
+            if (ws_input.readyState !== WebSocket.CLOSED) ws_input.close();
+        }
+
+        ws_input = new WebSocket(WS_URL_INPUT);
+
+        ws_input.onmessage = (e) => {
+            const data = JSON.parse(e.data);
+            if (data.type === 'cursor') document.body.style.cursor = data.value;
+            if (data.type === 'download_file') {
+                if (!document.hasFocus()) return;
+                const link = document.createElement('a');
+                link.style.display = 'none';
+                link.href = "data:application/octet-stream;base64," + data.data;
+                link.download = data.filename;
+                document.body.appendChild(link);
+                link.click();
+                setTimeout(() => link.remove(), 100);
+            }
+            if (data.type === 'request_upload') {
+                const input = document.createElement('input'); input.type = 'file';
+                input.onchange = () => {
+                    if (!input.files[0]) return;
+                    const r = new FileReader();
+                    r.onload = () => {
+                        if (ws_input.readyState === 1) {
+                            ws_input.send(JSON.stringify({ type: 'file_upload', filename: input.files[0].name, data: r.result.split(',')[1] }));
+                        }
+                    };
+                    r.readAsDataURL(input.files[0]);
+                };
+                input.click();
+            }
+        };
+
+        ws_input.onclose = () => { if (isFlashMode) setTimeout(setupInputWS, 1000); };
+        ws_input.onerror = () => { ws_input.close(); };
     }
 
     function setupInputs() {
         const getPct = (e) => ({ x_pct: e.clientX / window.innerWidth, y_pct: e.clientY / window.innerHeight });
-        window.addEventListener('mousemove', (e) => { if (ws?.readyState === 1 && document.hasFocus()) ws.send(JSON.stringify({ type: 'mouse_move', ...getPct(e) })); });
-        window.addEventListener('wheel', (e) => { if (ws?.readyState === 1 && document.hasFocus()) { e.preventDefault(); ws.send(JSON.stringify({ type: 'scroll', ...getPct(e), dx: e.deltaX * -1, dy: e.deltaY * -1 })); } }, { passive: false });
-        const sendR = (o) => { if (ws?.readyState === 1 && document.hasFocus()) ws.send(JSON.stringify(o)); };
+        window.addEventListener('mousemove', (e) => { if (ws_input?.readyState === 1 && document.hasFocus()) ws_input.send(JSON.stringify({ type: 'mouse_move', ...getPct(e) })); });
+        window.addEventListener('wheel', (e) => { if (ws_input?.readyState === 1 && document.hasFocus()) { e.preventDefault(); ws_input.send(JSON.stringify({ type: 'scroll', ...getPct(e), dx: e.deltaX * -1, dy: e.deltaY * -1 })); } }, { passive: false });
+        const sendR = (o) => { if (ws_input?.readyState === 1 && document.hasFocus()) ws_input.send(JSON.stringify(o)); };
         window.addEventListener('mousedown', (e) => sendR({ type: 'mouse_click', act: 'mousedown', button: e.button, ...getPct(e) }));
         window.addEventListener('mouseup', (e) => sendR({ type: 'mouse_click', act: 'mouseup', button: e.button, ...getPct(e) }));
         window.addEventListener('keydown', (e) => { if (e.ctrlKey && (e.key === 'w' || e.key === 'r')) return; e.preventDefault(); sendR({ type: 'keyboard', act: 'keydown', key: e.key, ctrl: e.ctrlKey, shift: e.shiftKey, alt: e.altKey, isRepeat: e.repeat }); }, true);
@@ -114,17 +184,20 @@
         document.body.appendChild(n);
     }
 
-    window.onfocus = () => { if (isFlashMode) { syncUrl(); if (ws?.readyState === 1) ws.send(JSON.stringify({ type: 'get_frame' })); } };
+    window.onfocus = () => { if (isFlashMode) { syncUrl(); if (ws_stream?.readyState === 1) ws_stream.send(JSON.stringify({ type: 'get_frame' })); } };
+
+    setInterval(() => {
+        if (isFlashMode) fetch(`${API_BASE}/keep_alive`, { method: 'POST' }).catch(() => { });
+    }, 30000);
 
     window.fetchinterval85025 = setInterval(() => {
         if (!isFlashMode) {
             if (isFlash() && document.hasFocus()) fetch(`${API_BASE}/status`).then(initStreaming).catch(() => showPrompt());
         } else {
-            fetch(`${API_BASE}/keep_alive`, { method: 'POST' }).catch(() => { });
-            imgElement.style.filter = document.hasFocus() ? "none" : "invert(10%) blur(5px)";
+            if (canvasElement) canvasElement.style.filter = document.hasFocus() ? "none" : "invert(10%) blur(5px)";
+
             if (document.hasFocus()) {
                 fetch(`${API_BASE}/status`).then(r => r.json()).then(data => {
-                    // miniLoader.style.display = data.is_loading ? "block" : "none";
                     fullPageLoader.style.display = (norm(data.url) !== norm(window.location.href) && data.url !== "about:blank") ? "flex" : "none";
 
                     if (data.pending_redirect && firstSyncDone) {
