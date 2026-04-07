@@ -90,7 +90,7 @@
     function setupInputs() {
         const getPct = (e) => ({ x_pct: e.clientX / window.innerWidth, y_pct: e.clientY / window.innerHeight });
         window.addEventListener('mousemove', (e) => { if (ws?.readyState === 1 && document.hasFocus()) ws.send(JSON.stringify({ type: 'mouse_move', ...getPct(e) })); });
-        window.addEventListener('wheel', (e) => { if (ws?.readyState === 1 && document.hasFocus()) { e.preventDefault(); ws.send(JSON.stringify({ type: 'scroll', ...getPct(e), dx: e.deltaX * -0.5, dy: e.deltaY * -0.5 })); } }, { passive: false });
+        window.addEventListener('wheel', (e) => { if (ws?.readyState === 1 && document.hasFocus()) { e.preventDefault(); ws.send(JSON.stringify({ type: 'scroll', ...getPct(e), dx: e.deltaX * -1, dy: e.deltaY * -1 })); } }, { passive: false });
         const sendR = (o) => { if (ws?.readyState === 1 && document.hasFocus()) ws.send(JSON.stringify(o)); };
         window.addEventListener('mousedown', (e) => sendR({ type: 'mouse_click', act: 'mousedown', button: e.button, ...getPct(e) }));
         window.addEventListener('mouseup', (e) => sendR({ type: 'mouse_click', act: 'mouseup', button: e.button, ...getPct(e) }));
@@ -124,7 +124,7 @@
             imgElement.style.filter = document.hasFocus() ? "none" : "invert(10%) blur(5px)";
             if (document.hasFocus()) {
                 fetch(`${API_BASE}/status`).then(r => r.json()).then(data => {
-                    miniLoader.style.display = data.is_loading ? "block" : "none";
+                    // miniLoader.style.display = data.is_loading ? "block" : "none";
                     fullPageLoader.style.display = (norm(data.url) !== norm(window.location.href) && data.url !== "about:blank") ? "flex" : "none";
 
                     if (data.pending_redirect && firstSyncDone) {

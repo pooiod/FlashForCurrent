@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>FlashForCurrent - Flash for modern browsers</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Trebuchet+MS:wght@400;700&family=Verdana:wght@400;700&display=swap"
+        rel="stylesheet" />
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+        }
+
+        #page-wrapper {
+            position: relative;
+            width: 100%;
+            min-height: 100vh;
+            font-family: 'Trebuchet MS', Verdana, sans-serif;
+            color: #1a202c;
+            background: radial-gradient(circle at 50% 0%, #ffffff 0%, #cbd5e0 70%, #a0aec0 100%);
+            background-attachment: scroll;
+            background-repeat: no-repeat;
+            background-size: cover;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .decor-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .vector-swoosh {
+            position: absolute;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0) 100%);
+            box-shadow: inset 0 0 80px rgba(255, 255, 255, 0.6);
+        }
+
+        .swoosh-1 {
+            width: 140vw;
+            height: 1200px;
+            top: -600px;
+            left: -20vw;
+            transform: scaleY(0.3) rotate(-10deg);
+        }
+
+        .swoosh-2 {
+            width: 90vw;
+            height: 90vw;
+            top: 600px;
+            right: -15vw;
+            transform: scaleY(0.5) rotate(15deg);
+        }
+
+        nav {
+            position: fixed;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            
+            backdrop-filter: url(#liquid-glass) blur(8px);
+            -webkit-backdrop-filter: url(#liquid-glass) blur(8px);
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 
+                inset 0 0 25px rgba(255, 255, 255, 0.3), 
+                inset 0 2px 2px rgba(255, 255, 255, 0.8),
+                0 10px 20px rgba(0, 0, 0, 0.05);
+        }
+
+        .nav-inner {
+            width: 100%;
+            max-width: 1200px;
+            padding: 0 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 80px;
+        }
+
+        .nav-at-top {
+            width: 100%;
+            max-width: 100%;
+            top: 0;
+            border-radius: 0;
+            border-top: none;
+            border-left: none;
+            border-right: none;
+        }
+
+        .nav-scrolled {
+            width: 90%;
+            max-width: 960px;
+            top: 20px;
+            border-radius: 40px;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            font-style: italic;
+            color: #1e5799;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .flash-pill-btn {
+            display: inline-block;
+            background: linear-gradient(to bottom, #6eb4f2 0%, #1e5799 50%, #133d6b 100%);
+            border: 1px solid #0a2644;
+            border-radius: 35px;
+            padding: 12px 28px;
+            color: #ffffff;
+            font-weight: bold;
+            text-transform: uppercase;
+            text-decoration: none;
+            text-shadow: 0 -1px 1px rgba(0, 0, 0, 0.8);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 6px 12px rgba(0, 0, 0, 0.2);
+            transition: transform 0.1s;
+        }
+
+        .flash-pill-btn:active { transform: translateY(2px); }
+
+        .btn-large {
+            font-size: 1.25rem;
+            padding: 20px 50px;
+            margin-top: 20px;
+        }
+
+        main {
+            position: relative;
+            z-index: 10;
+            padding: 200px 20px 100px 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .hero { text-align: center; margin-bottom: 80px; }
+
+        .h-flash {
+            color: #0f172a;
+            text-shadow: 1px 1px 0px #fff, 2px 4px 15px rgba(0, 0, 0, 0.1);
+            letter-spacing: -2px;
+            font-weight: bold;
+            margin-bottom: 30px;
+        }
+
+        h1.h-flash { font-size: clamp(3rem, 8vw, 7rem); margin-top: 0; }
+        h2.h-flash { font-size: 2.5rem; }
+
+        .hero-desc {
+            font-size: clamp(1.1rem, 3vw, 1.75rem);
+            color: #334155;
+            line-height: 1.4;
+            max-width: 800px;
+            margin: 0 auto 40px auto;
+        }
+
+        .flash-panel {
+            background: linear-gradient(to bottom, #ffffff 0%, #f8fafc 100%);
+            border: 1px solid #ffffff;
+            border-bottom: 3px solid #94a3b8;
+            border-radius: 28px;
+            padding: 50px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.08);
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .panel-text {
+            font-size: 1.2rem;
+            color: #475569;
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+
+        .technical-limit {
+            margin-top: 60px;
+            background: rgba(255, 255, 255, 0.4);
+            border: 1px solid #cbd5e0;
+            border-radius: 12px;
+            padding: 24px;
+            color: #4a5568;
+            font-size: 0.9rem;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        @media (min-width: 900px) {
+            .h-flash { white-space: nowrap; }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="page-wrapper">
+        <svg style="position: absolute; width: 0; height: 0; pointer-events: none;">
+            <filter id="liquid-glass" color-interpolation-filters="sRGB">
+                <feImage id="glass-map" href="" result="MAP" x="0" y="0" width="100%" height="100%" />
+                <feDisplacementMap in="SourceGraphic" in2="MAP" scale="60" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+        </svg>
+
+        <div class="decor-container">
+            <div class="vector-swoosh swoosh-1"></div>
+            <div class="vector-swoosh swoosh-2"></div>
+        </div>
+
+        <nav id="main-nav" class="nav-at-top">
+            <div class="nav-inner">
+                <div class="logo">FlashForCurrent</div>
+                <a href="/downloads" class="flash-pill-btn " style="font-size: 0.75rem; padding: 10px 20px;">Downloads</a>
+            </div>
+        </nav>
+
+        <main>
+            <section class="hero">
+                <h1 class="h-flash">Flash isn't dead</h1>
+                <p class="hero-desc">
+                    Emulation is great, but compatibility is still lacking.
+                    FlashForCurrent brings the original Pepper Flash engine directly to your browser.
+                </p>
+                <a href="/downloads" class="flash-pill-btn btn-large">Download now</a>
+            </section>
+
+            <div class="flash-panel">
+                <h2 class="h-flash">True compatibility</h2>
+                <p class="panel-text">
+                    Emulation projects are a massive win, but they aren't fully compatible with everything yet.
+                    The most common emulator currently supports around 87% of Flash, but it isn't enough.
+                </p>
+                <p class="panel-text" style="margin-bottom: 0;">
+                    FlashForCurrent gets past this by using the actual Pepper Flash engine.
+                    This means that everything will work exactly as it did just before flash went EOL.
+                </p>
+            </div>
+
+            <div class="technical-limit">
+                <p>
+                    <strong>Notice:</strong>
+                    Due to the way this works, only one Flash tab can be
+                    loaded at a time. Loading a new Flash tab will cause the previous tabs to unload.
+                </p>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const generateMap = (size) => {
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            const imgData = ctx.createImageData(size, size);
+            const center = size / 2;
+
+            for (let y = 0; y < size; y++) {
+                for (let x = 0; x < size; x++) {
+                    const dx = x - center;
+                    const dy = y - center;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    const angle = Math.atan2(dy, dx);
+                    let r = 128, g = 128;
+                    if (dist < center) {
+                        const power = Math.sin((dist / center) * Math.PI);
+                        r = 128 + (Math.cos(angle) * power * 127);
+                        g = 128 + (Math.sin(angle) * power * 127);
+                    }
+                    const i = (y * size + x) * 4;
+                    imgData.data[i] = r;
+                    imgData.data[i + 1] = g;
+                    imgData.data[i + 2] = 128;
+                    imgData.data[i + 3] = 255;
+                }
+            }
+            ctx.putImageData(imgData, 0, 0);
+            return canvas.toDataURL();
+        };
+
+        const handleScroll = () => {
+            const nav = document.getElementById('main-nav');
+            if (window.scrollY > 40) {
+                nav.classList.remove('nav-at-top');
+                nav.classList.add('nav-scrolled');
+            } else {
+                nav.classList.remove('nav-scrolled');
+                nav.classList.add('nav-at-top');
+            }
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const glassMap = document.getElementById('glass-map');
+            if(glassMap) glassMap.setAttribute('href', generateMap(256));
+        });
+
+        window.addEventListener('scroll', handleScroll);
+    </script>
+</body>
+</html>
