@@ -13,6 +13,18 @@ from tkinter import messagebox, Tk
 
 os.environ["QT_WEBENGINE_DISABLE_TSF"] = "1"
 
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+
+from PyQt5 import QtCore, QtGui
+from PyQt5.QtCore import QUrl, QCoreApplication, Qt, pyqtSignal, QObject, QPoint, QPointF, pyqtSlot, QDir, QRect
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QFrame, QLabel, QPushButton,
+                             QLineEdit, QVBoxLayout, QHBoxLayout, QDesktopWidget)
+from PyQt5.QtGui import QMouseEvent, QKeyEvent, QWheelEvent, QIcon, QImage
+from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineSettings, QWebEnginePage, QWebEngineScript
+from PyQt5.QtWebSockets import QWebSocketServer
+from PyQt5.QtNetwork import QHostAddress
+
 downloads = os.path.join(os.path.expanduser("~"), "Downloads")
 exe_name = "FlashHelper.exe"
 exe_path = os.path.join(downloads, exe_name)
@@ -77,18 +89,6 @@ if sys.platform == 'win32' and "--sandboxed" not in sys.argv:
     drop_privileges_and_restart()
 elif sys.platform == 'win32':
     apply_low_integrity()
-
-from flask import Flask, request, jsonify
-from flask_cors import CORS
-
-from PyQt5 import QtCore, QtGui
-from PyQt5.QtCore import QUrl, QCoreApplication, Qt, pyqtSignal, QObject, QPoint, QPointF, pyqtSlot, QDir, QRect
-from PyQt5.QtWidgets import (QApplication, QMainWindow, QFrame, QLabel, QPushButton,
-                             QLineEdit, QVBoxLayout, QHBoxLayout, QDesktopWidget)
-from PyQt5.QtGui import QMouseEvent, QKeyEvent, QWheelEvent, QIcon, QImage
-from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineSettings, QWebEnginePage, QWebEngineScript
-from PyQt5.QtWebSockets import QWebSocketServer
-from PyQt5.QtNetwork import QHostAddress
 
 FLASH_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "pepflashplayer.dll"))
 if not os.path.exists(FLASH_PATH):
