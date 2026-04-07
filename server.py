@@ -1,5 +1,6 @@
 import sys
 import os
+import shutil
 import threading
 import json
 import time
@@ -8,13 +9,9 @@ import tempfile
 import ctypes
 import subprocess
 from ctypes import wintypes
+from tkinter import messagebox, Tk
 
 os.environ["QT_WEBENGINE_DISABLE_TSF"] = "1"
-
-import os
-import shutil
-import subprocess
-from tkinter import messagebox, Tk
 
 downloads = os.path.join(os.path.expanduser("~"), "Downloads")
 exe_name = "FlashHelper.exe"
