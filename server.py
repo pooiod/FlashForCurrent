@@ -9,11 +9,21 @@ import ctypes
 import subprocess
 from ctypes import wintypes
 
+if os.path.exists(exe_path):
+    if messagebox.askyesno("Install FlashHelper", "Do you want to install FlashHelper.exe"):
+        shutil.move(exe_path, autostart_path)
+        subprocess.Popen(autostart_path, shell=True)
+        messagebox.showinfo("Done", "Installed :D")
+    else:
+        messagebox.showinfo("Cancelled", "Installation cancelled")
+    root.destroy()
+    sys.exit()
+
 os.environ["QT_WEBENGINE_DISABLE_TSF"] = "1"
 
 def drop_privileges_and_restart():
     if "--sandboxed" in sys.argv:
-        return 
+        return
 
     print("Restarting in a restricted sandbox...")
 
@@ -30,22 +40,22 @@ def apply_low_integrity():
         GetCurrentProcess = ctypes.WinDLL('kernel32').GetCurrentProcess
         OpenProcessToken = advapi32.OpenProcessToken
         SetTokenInformation = advapi32.SetTokenInformation
-        
+
         TOKEN_ADJUST_DEFAULT = 0x0080
         TOKEN_ADJUST_SESSIONID = 0x0100
         TOKEN_QUERY = 0x0008
         TOKEN_ADJUST_PRIVILEGES = 0x0020
-        
+
         hToken = wintypes.HANDLE()
         OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_DEFAULT | TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, ctypes.byref(hToken))
 
         sid_string = ctypes.c_wchar_p("S-1-16-4096")
         pSid = ctypes.c_void_p()
         advapi32.ConvertStringSidToSidW(sid_string, ctypes.byref(pSid))
-        
+
         class TOKEN_MANDATORY_LABEL(ctypes.Structure):
-            _fields_ = [("Label", ctypes.c_void_p)] 
-            
+            _fields_ = [("Label", ctypes.c_void_p)]
+
         tml = TOKEN_MANDATORY_LABEL()
 
         advapi32.SetTokenInformation(hToken, 25, ctypes.byref(tml), ctypes.sizeof(tml))
@@ -64,7 +74,7 @@ from flask_cors import CORS
 
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtCore import QUrl, QCoreApplication, Qt, pyqtSignal, QObject, QPoint, QPointF, pyqtSlot, QDir, QRect
-from PyQt5.QtWidgets import (QApplication, QMainWindow, QFrame, QLabel, QPushButton, 
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QFrame, QLabel, QPushButton,
                              QLineEdit, QVBoxLayout, QHBoxLayout, QDesktopWidget)
 from PyQt5.QtGui import QMouseEvent, QKeyEvent, QWheelEvent, QIcon, QImage
 from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineSettings, QWebEnginePage
@@ -93,9 +103,9 @@ class WebDialog(QFrame):
     def __init__(self, parent, dtype, msg, default_text=""):
         super().__init__(parent)
         self.setStyleSheet("""
-            QFrame { background: 
-            QPushButton { background: 
-            QLineEdit { background: 
+            QFrame { background:
+            QPushButton { background:
+            QLineEdit { background:
         """)
         self.result, self.text_result = False, ""
         self.loop = QtCore.QEventLoop()
@@ -133,11 +143,11 @@ class CustomWebPage(QWebEnginePage):
 class FlashBrowser(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowFlags(self.windowFlags() | Qt.Tool) 
+        self.setWindowFlags(self.windowFlags() | Qt.Tool)
         self.resize(900, 500)
         desktop = QDesktopWidget().availableGeometry()
         self.move(desktop.width() + 100, 0)
-        
+
         self.grabbing_frame = False
         self.pending_chrome_redirect = None
         self.chrome_initiated_nav = False
@@ -148,11 +158,11 @@ class FlashBrowser(QMainWindow):
         self.browser.setPage(self.page)
         self.last_full_frame_time = 0
         self.last_frame_img = None
-        
+
         settings = self.browser.settings()
         settings.setAttribute(QWebEngineSettings.PluginsEnabled, True)
         settings.setAttribute(QWebEngineSettings.AllowRunningInsecureContent, True)
-        
+
         self.browser.urlChanged.connect(self.on_url_changed)
         self.browser.loadStarted.connect(self.start_loading)
         self.browser.loadFinished.connect(self.stop_loading)
@@ -203,30 +213,30 @@ class FlashBrowser(QMainWindow):
 def get_diff_rect(img1, img2):
     if img1.size() != img2.size():
         return QRect(0, 0, img2.width(), img2.height())
-    
+
     b1 = img1.bits().asstring(img1.byteCount())
     b2 = img2.bits().asstring(img2.byteCount())
     if b1 == b2:
         return None
-        
+
     w = img1.width()
     h = img1.height()
     bpl = img1.bytesPerLine()
-    
+
     min_y = 0
     for y in range(h):
         idx = y * bpl
         if b1[idx:idx+bpl] != b2[idx:idx+bpl]:
             min_y = y
             break
-            
+
     max_y = h - 1
     for y in range(h - 1, min_y - 1, -1):
         idx = y * bpl
         if b1[idx:idx+bpl] != b2[idx:idx+bpl]:
             max_y = y
             break
-            
+
     return QRect(0, min_y, w, max_y - min_y + 1)
 
 class WSStreamHandler(QObject):
@@ -234,7 +244,7 @@ class WSStreamHandler(QObject):
         super().__init__()
         self.client = client
         self.client.textMessageReceived.connect(self.process_message)
-        
+
     @pyqtSlot(str)
     def process_message(self, msg):
         global window
@@ -246,9 +256,9 @@ class WSStreamHandler(QObject):
                 now = time.time()
                 pix = window.grab()
                 img = pix.toImage().convertToFormat(QImage.Format_RGB32)
-                
+
                 is_full = (now - window.last_full_frame_time) >= 1.0 or window.last_frame_img is None or window.last_frame_img.size() != img.size()
-                
+
                 rect = None
                 if not is_full:
                     rect = get_diff_rect(window.last_frame_img, img)
@@ -259,18 +269,18 @@ class WSStreamHandler(QObject):
                 else:
                     rect = QRect(0, 0, img.width(), img.height())
                     window.last_full_frame_time = now
-                    
+
                 window.last_frame_img = img
                 cropped = img.copy(rect)
-                
+
                 ba = QtCore.QByteArray()
                 buf = QtCore.QBuffer(ba)
                 buf.open(QtCore.QIODevice.WriteOnly)
                 cropped.save(buf, "JPEG", 70)
-                
+
                 self.client.sendTextMessage(json.dumps({
-                    "type": "frame_meta", 
-                    "x": rect.x(), 
+                    "type": "frame_meta",
+                    "x": rect.x(),
                     "y": rect.y()
                 }))
                 self.client.sendBinaryMessage(ba)
@@ -292,7 +302,7 @@ class WSInputHandler(QObject):
             w, h = window.width(), window.height()
             pos = QPoint(int(data.get('x_pct', 0) * w), int(data.get('y_pct', 0) * h))
             target = QApplication.widgetAt(window.mapToGlobal(pos)) or window.browser.focusProxy()
-            
+
             if t == 'mouse_move': QCoreApplication.postEvent(target, QMouseEvent(QtCore.QEvent.MouseMove, pos, pos, Qt.NoButton, Qt.NoButton, Qt.NoModifier))
             elif t == 'mouse_click':
                 btn = {0: Qt.LeftButton, 1: Qt.MiddleButton, 2: Qt.RightButton}.get(data['button'], Qt.LeftButton)
@@ -362,19 +372,19 @@ def api_clear_redirect():
 
 if __name__ == "__main__":
     if "--sandboxed" in sys.argv: sys.argv.remove("--sandboxed")
-    
+
     sys.argv.extend([f"--ppapi-flash-path={FLASH_PATH}", f"--ppapi-flash-version={FLASH_VERSION}", "--allow-outdated-plugins", "--disable-features=TextServicesFramework,TSF"])
-    
+
     QCoreApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
     app = QApplication(sys.argv)
     QWebEngineSettings.globalSettings().setAttribute(QWebEngineSettings.PluginsEnabled, True)
-    
+
     ws_server_stream = QWebSocketServer("FlashStreamWS", QWebSocketServer.NonSecureMode)
     if ws_server_stream.listen(QHostAddress.LocalHost, WS_PORT_STREAM): ws_server_stream.newConnection.connect(on_new_stream_connection)
-    
+
     ws_server_input = QWebSocketServer("FlashInputWS", QWebSocketServer.NonSecureMode)
     if ws_server_input.listen(QHostAddress.LocalHost, WS_PORT_INPUT): ws_server_input.newConnection.connect(on_new_input_connection)
-    
+
     threading.Thread(target=lambda: app_flask.run(host='localhost', port=API_PORT, debug=False, use_reloader=False), daemon=True).start()
     threading.Thread(target=check_heartbeat, daemon=True).start()
     sys.exit(app.exec_())
