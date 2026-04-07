@@ -39,5 +39,29 @@
             allowFullScreen="true"
             wmode="direct">
     </div>
+
+    <script>
+        const container = document.getElementById("flash-content")
+
+        function resize() {
+            const w = window.innerWidth
+            const h = window.innerHeight
+            const targetRatio = 40 / 29
+
+            let newW = w
+            let newH = w / targetRatio
+
+            if (newH > h) {
+                newH = h
+                newW = h * targetRatio
+            }
+
+            container.style.width = newW + "px"
+            container.style.height = newH + "px"
+        }
+
+        window.addEventListener("resize", resize)
+        resize()
+    </script>
 </body>
 </html>
