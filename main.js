@@ -305,7 +305,7 @@
                     } else if (norm(data.url) !== norm(window.location.href) && data.url !== "about:blank") { syncUrl(); }
                 });
             } else {
-                justHadNoFocus = 50;
+                justHadNoFocus = 10;
             }
         }
     }, 500);
