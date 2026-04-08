@@ -1,12 +1,10 @@
 # FlashForCurrent
-
 Emulation projects are a massive win, but they aren't fully compatible with everything yet.
 The most common emulator currently supports around 87% of Flash, but it isn't enough.
 
 FlashForCurrent brings the original Pepper Flash (chrome) back to your browser, exactly as it was.
 
 ## Downloads
-
 To use FlashForCurrent, you must install a userscript or browser extension,
 and you must install the helper app.
 
