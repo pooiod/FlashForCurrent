@@ -117,7 +117,7 @@
     function initStreaming() {
         isFlashMode = true; document.body.innerHTML = "";
         document.body.style = `margin:0;background:${theme.background};overflow:hidden;user-select:none;-webkit-user-select:none;`;
-        StopTimedThings();
+        // StopTimedThings();
 
         canvasElement = document.createElement('canvas');
         canvasElement.style = `width:100vw;height:100vh;pointer-events:none;display:block;background:${theme.background};`;
@@ -358,7 +358,7 @@
                 });
             } else {
                 if (document.hidden) {
-                    justHadNoFocus = 10;
+                    justHadNoFocus = 20;
                 }
             }
         }
