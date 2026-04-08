@@ -349,7 +349,7 @@
                         fetch(`${API_BASE}/clear_redirect`, { method: 'POST' }); window.location.href = data.pending_redirect;
                     } else if (!isTheSame(norm(data.url), norm(window.location.href))) {
                         console.log(data.url, window.location.href);
-                        if (sameBaseDomain(data.url, window.location.href)) {
+                        if (sameBaseDomain(data.url, window.location.href) && firstSyncDone) {
                             const url1 = new URL(data.url, window.location.origin)
                             history.replaceState({}, '', url1)
                         } else {
