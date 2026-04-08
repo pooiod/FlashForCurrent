@@ -112,12 +112,13 @@
         return !!document.querySelector('object, embed[type*="flash"], img[alt*="Get Flash" i]');
     }
 
+    if (isFlash()) StopTimedThings();
+
     function norm(url) { return url.replace(/\/$/, "").toLowerCase(); }
 
     function initStreaming() {
         isFlashMode = true; document.body.innerHTML = "";
         document.body.style = `margin:0;background:${theme.background};overflow:hidden;user-select:none;-webkit-user-select:none;`;
-        // StopTimedThings();
 
         canvasElement = document.createElement('canvas');
         canvasElement.style = `width:100vw;height:100vh;pointer-events:none;display:block;background:${theme.background};`;
