@@ -128,4 +128,10 @@
       }
     }
   });
+
+  document.addEventListener('keydown', function(event) {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'r') {
+      window.location.reload();
+    }
+  });
 })();
