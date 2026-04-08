@@ -298,13 +298,14 @@
 
             if (document.hasFocus()) {
                 fetch(`${API_BASE}/status`).then(r => r.json()).then(data => {
-                    fullPageLoader.style.display = (!isTheSame(norm(data.url),  norm(window.location.href)) && data.url !== "about:blank") ? "flex" : "none";
+                    fullPageLoader.style.display = (!isTheSame(norm(data.url),  norm(window.location.href))) ? "flex" : "none";
 
                     if (justHadNoFocus > 0) {
                         fullPageLoader.style.display = "flex";
                     }
 
                     if (data.pending_redirect && firstSyncDone) {
+                        if (data.url == "about:blank") return;
                         fetch(`${API_BASE}/clear_redirect`, { method: 'POST' }); window.location.href = data.pending_redirect;
                     } else if (!isTheSame(norm(data.url), norm(window.location.href))) {
                         console.log(data.url, window.location.href);
