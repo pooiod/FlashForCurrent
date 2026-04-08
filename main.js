@@ -298,7 +298,7 @@
 
             if (document.hasFocus()) {
                 fetch(`${API_BASE}/status`).then(r => r.json()).then(data => {
-                    fullPageLoader.style.display = (norm(data.url) !== norm(window.location.href) && data.url !== "about:blank") ? "flex" : "none";
+                    fullPageLoader.style.display = (!isTheSame(norm(data.url),  norm(window.location.href)) && data.url !== "about:blank") ? "flex" : "none";
 
                     if (justHadNoFocus > 0) {
                         fullPageLoader.style.display = "flex";
