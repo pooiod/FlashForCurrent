@@ -21,9 +21,6 @@
             window.cancelAnimationFrame(frameId);
         }
 
-        const newBody = document.body.cloneNode(true);
-        document.body.parentNode.replaceChild(newBody, document.body);
-
         if (navigator.serviceWorker) {
             navigator.serviceWorker.getRegistrations().then(regs => {
                 for (let reg of regs) reg.unregister();
@@ -120,6 +117,7 @@
     function initStreaming() {
         isFlashMode = true; document.body.innerHTML = "";
         document.body.style = `margin:0;background:${theme.background};overflow:hidden;user-select:none;-webkit-user-select:none;`;
+        StopTimedThings();
 
         canvasElement = document.createElement('canvas');
         canvasElement.style = `width:100vw;height:100vh;pointer-events:none;display:block;background:${theme.background};`;
@@ -172,8 +170,6 @@
         if (ws_stream) {
             ws_stream.onclose = null;
             if (ws_stream.readyState !== WebSocket.CLOSED) ws_stream.close();
-        } else {
-            StopTimedThings();
         }
 
         ws_stream = new WebSocket(WS_URL_STREAM);
