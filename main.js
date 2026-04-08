@@ -227,8 +227,32 @@
         const sendR = (o) => { if (ws_input?.readyState === 1 && document.hasFocus()) ws_input.send(JSON.stringify(o)); };
         window.addEventListener('mousedown', (e) => sendR({ type: 'mouse_click', act: 'mousedown', button: e.button, ...getPct(e) }));
         window.addEventListener('mouseup', (e) => sendR({ type: 'mouse_click', act: 'mouseup', button: e.button, ...getPct(e) }));
-        window.addEventListener('keydown', (e) => { if (e.ctrlKey && (e.key === 'w' || e.key === 'r')) return; e.preventDefault(); sendR({ type: 'keyboard', act: 'keydown', key: e.key, ctrl: e.ctrlKey, shift: e.shiftKey, alt: e.altKey, isRepeat: e.repeat }); }, true);
-        window.addEventListener('keyup', (e) => { e.preventDefault(); sendR({ type: 'keyboard', act: 'keyup', key: e.key, ctrl: e.ctrlKey, shift: e.shiftKey, alt: e.altKey, isRepeat: false }); }, true);
+        window.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && (e.key === 'w' || e.key === 'r' || e.key === 'j')) return;
+            e.preventDefault();
+            sendR({
+                type: 'keyboard',
+                act: 'keydown',
+                key: e.key,
+                ctrl: e.ctrlKey,
+                shift: e.shiftKey,
+                alt: e.altKey,
+                isRepeat: e.repeat
+            });
+        }, true);
+
+        window.addEventListener('keyup', (e) => {
+            e.preventDefault();
+            sendR({
+                type: 'keyboard',
+                act: 'keyup',
+                key: e.key,
+                ctrl: e.ctrlKey,
+                shift: e.shiftKey,
+                alt: e.altKey,
+                isRepeat: false
+            });
+        }, true);
         document.addEventListener('contextmenu', e => e.preventDefault());
     }
 
