@@ -1,4 +1,79 @@
 (function () {
+  const getThemeColors = () => {
+    let style = getComputedStyle(document.body).backgroundColor;
+    if (!style || style === "transparent" || style === "rgba(0, 0, 0, 0)") {
+      style = "rgb(255,255,255)";
+    } else if (style.startsWith("rgba")) {
+      let parts = style.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*(\d+\.?\d*)\)/);
+      let r = Math.round(255 * (1 - parseFloat(parts[4])) + parseInt(parts[1]) * parseFloat(parts[4]));
+      let g = Math.round(255 * (1 - parseFloat(parts[4])) + parseInt(parts[2]) * parseFloat(parts[4]));
+      let b = Math.round(255 * (1 - parseFloat(parts[4])) + parseInt(parts[3]) * parseFloat(parts[4]));
+      style = `rgb(${r},${g},${b})`;
+    }
+
+    const bgColor = style;
+    const tempElem = document.createElement("div");
+    tempElem.style.color = bgColor;
+    document.body.appendChild(tempElem);
+    const rgbStyle = window.getComputedStyle(tempElem).color;
+    document.body.removeChild(tempElem);
+
+    const rgbValues = rgbStyle.match(/\d+/g).map(Number);
+    const r = rgbValues[0] / 255;
+    const g = rgbValues[1] / 255;
+    const b = rgbValues[2] / 255;
+
+    const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    const textColor = luminance > 0.5 ? "#000000" : "#ffffff";
+
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h, s, l = (max + min) / 2;
+
+    if (max === min) {
+      h = s = 0;
+    } else {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch (max) {
+        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+        case g: h = (b - r) / d + 2; break;
+        case b: h = (r - g) / d + 4; break;
+      }
+      h /= 6;
+    }
+
+    h *= 360;
+    s *= 100;
+    l *= 100;
+
+    let accentHue = (h + 180) % 360;
+    let accentSat = s < 10 ? 75 : Math.min(s + 20, 100);
+    let accentLight;
+
+    if (l > 70) {
+      accentLight = 40;
+    } else if (l < 30) {
+      accentLight = 70;
+    } else {
+      accentLight = l > 50 ? l - 30 : l + 30;
+    }
+
+    if (s < 10) {
+      accentHue = 210;
+      accentSat = 80;
+    }
+
+    const accentColor = `hsl(${Math.round(accentHue)}, ${Math.round(accentSat)}%, ${Math.round(accentLight)}%)`;
+
+    return {
+      background: bgColor,
+      accent: accentColor,
+      text: textColor
+    };
+  };
+
+  const theme = getThemeColors();
+
   var headScripts = document.head.getElementsByTagName('script');
   for (var i = 0; i < headScripts.length; i++) {
     if (headScripts[i].getAttribute('src') && headScripts[i].getAttribute('src').includes("ruffle.js")) {
@@ -20,7 +95,7 @@
       clearInterval(j38180310);
     }, 3000);
     setTimeout(()=>{
-      const [r,g,b]=window.FlashTheme283.background.match(/\d+/g).map(Number);
+      const [r,g,b]=theme.background.match(/\d+/g).map(Number);
       const brightness=(r*299+g*587+b*114)/1000;
 
       if(brightness>230) eruda.setTheme("Light");
