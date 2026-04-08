@@ -244,7 +244,7 @@
         window.addEventListener('mouseup', (e) => sendR({ type: 'mouse_click', act: 'mouseup', button: e.button, ...getPct(e) }));
         window.addEventListener('keydown', (e) => {
             if (e.ctrlKey && (e.key === 'w' || (e.shiftKey && e.key === 'J'))) return;
-            if (e.key !== 'r') e.preventDefault();
+            e.preventDefault();
             sendR({
                 type: 'keyboard',
                 act: 'keydown',
@@ -255,6 +255,11 @@
                 isRepeat: e.repeat
             });
             if (e.ctrlKey && e.key == 'I') console.log("This console is for debugging the stream. If you need to debug you flash content you should direct your attention to the horizontal console.");
+            if (e.key == 'r') {
+                setTimeout(function() {
+                    location.reload();
+                }, 500);
+            }
         }, true);
 
         window.addEventListener('keyup', (e) => {
