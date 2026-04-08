@@ -301,7 +301,7 @@
 
     var justHadNoFocus = 0;
     setInterval(()=>{
-        if (justHadNoFocus > 0 || document.hidden) {
+        if (justHadNoFocus > 0) {
             fullPageLoader.style.display = "flex";
             justHadNoFocus -= 1;
         } else {
