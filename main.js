@@ -277,7 +277,7 @@
         if (isFlashMode) fetch(`${API_BASE}/keep_alive`, { method: 'POST' }).catch(() => { });
     }, 30000);
 
-    var justHadNoFocus = false
+    var justHadNoFocus = 0;
     window.fetchinterval85025 = setInterval(() => {
         if (!isFlashMode) {
             if (isFlash() && document.hasFocus()) fetch(`${API_BASE}/status`).then(initStreaming).catch(() => showPrompt());
