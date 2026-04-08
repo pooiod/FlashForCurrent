@@ -239,7 +239,7 @@
     function setupInputs() {
         const getPct = (e) => ({ x_pct: e.clientX / window.innerWidth, y_pct: e.clientY / window.innerHeight });
         window.addEventListener('mousemove', (e) => { if (ws_input?.readyState === 1 && document.hasFocus()) ws_input.send(JSON.stringify({ type: 'mouse_move', ...getPct(e) })); });
-        window.addEventListener('wheel', (e) => { if (ws_input?.readyState === 1 && document.hasFocus()) { e.preventDefault(); ws_input.send(JSON.stringify({ type: 'scroll', ...getPct(e), dx: e.deltaX * -1, dy: e.deltaY * -1 })); } }, { passive: false });
+        window.addEventListener('wheel', (e) => { if (ws_input?.readyState === 1 && document.hasFocus()) { e.preventDefault(); ws_input.send(JSON.stringify({ type: 'scroll', ...getPct(e), dx: e.deltaX * -2, dy: e.deltaY * -2 })); } }, { passive: false });
         const sendR = (o) => { if (ws_input?.readyState === 1 && document.hasFocus()) ws_input.send(JSON.stringify(o)); };
         window.addEventListener('mousedown', (e) => sendR({ type: 'mouse_click', act: 'mousedown', button: e.button, ...getPct(e) }));
         window.addEventListener('mouseup', (e) => sendR({ type: 'mouse_click', act: 'mouseup', button: e.button, ...getPct(e) }));
