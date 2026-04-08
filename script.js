@@ -24,8 +24,13 @@
   erudascript.src = 'https://cdn.jsdelivr.net/npm/eruda';
   erudascript.onload = function () {
     eruda.init();
-    const btn = document.querySelector('.eruda-entry-btn');
-    if (btn) btn.style.display = 'none';
+    var j38180310 = setInterval(()=>{
+      const btn = document.querySelector('.eruda-entry-btn');
+      if (btn) btn.style.display = 'none';
+    }, 100);
+    setTimeout(()=>{
+      clearInterval(j38180310);
+    }, 3000);
   };
   document.head.appendChild(erudascript);
 
