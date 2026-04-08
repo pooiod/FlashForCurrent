@@ -252,7 +252,7 @@
         window.addEventListener('mousedown', (e) => sendR({ type: 'mouse_click', act: 'mousedown', button: e.button, ...getPct(e) }));
         window.addEventListener('mouseup', (e) => sendR({ type: 'mouse_click', act: 'mouseup', button: e.button, ...getPct(e) }));
         window.addEventListener('keydown', (e) => {
-            if (e.ctrlKey && (e.key === 'w' || e.key === 'r' || e.key === 'j')) return;
+            if (e.ctrlKey && (e.key === 'w' || e.key === 'r' || (e.shiftKey && e.key === 'J'))) return;
             e.preventDefault();
             sendR({
                 type: 'keyboard',
