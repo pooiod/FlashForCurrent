@@ -307,7 +307,7 @@
 
     var justHadNoFocus = 0;
     setInterval(()=>{
-        if (justHadNoFocus > 0) {
+        if (justHadNoFocus > 0 && fullPageLoader) {
             fullPageLoader.style.display = "flex";
             justHadNoFocus -= 1;
         } else {
