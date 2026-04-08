@@ -278,6 +278,13 @@
     }, 30000);
 
     var justHadNoFocus = 0;
+    setInterval(()=>{
+        if (justHadNoFocus > 0 || document.hidden) {
+            fullPageLoader.style.display = "flex";
+            justHadNoFocus -= 1;
+        }
+    }, 100);
+
     window.fetchinterval85025 = setInterval(() => {
         if (!isFlashMode) {
             if (isFlash() && document.hasFocus()) fetch(`${API_BASE}/status`).then(initStreaming).catch(() => showPrompt());
@@ -285,16 +292,12 @@
             if (canvasElement) canvasElement.style.filter = document.hasFocus() ? "none" : "invert(10%) blur(5px)";
 
             if (document.hasFocus()) {
-                if (justHadNoFocus > 0 || document.hidden) {
-                    fullPageLoader.style.display = "flex";
-                }
 
                 fetch(`${API_BASE}/status`).then(r => r.json()).then(data => {
                     fullPageLoader.style.display = (norm(data.url) !== norm(window.location.href) && data.url !== "about:blank") ? "flex" : "none";
 
                     if (justHadNoFocus > 0) {
                         fullPageLoader.style.display = "flex";
-                        justHadNoFocus -= 1;
                     }
 
                     if (data.pending_redirect && firstSyncDone) {
@@ -302,7 +305,7 @@
                     } else if (norm(data.url) !== norm(window.location.href) && data.url !== "about:blank") { syncUrl(); }
                 });
             } else {
-                justHadNoFocus = 5;
+                justHadNoFocus = 50;
             }
         }
     }, 500);
