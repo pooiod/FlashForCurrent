@@ -301,7 +301,7 @@
 
     var justHadNoFocus = 0;
     setInterval(()=>{
-        if (justHadNoFocus > 0 || document.hidden) {
+        if (justHadNoFocus > 0 && !document.hidden) {
             fullPageLoader.style.display = "flex";
             justHadNoFocus -= 1;
         }
@@ -328,7 +328,7 @@
                 fetch(`${API_BASE}/status`).then(r => r.json()).then(data => {
                     fullPageLoader.style.display = (!isTheSame(norm(data.url),  norm(window.location.href))) ? "flex" : "none";
 
-                    if (justHadNoFocus > 0) {
+                    if (justHadNoFocus > 0 && !document.hidden) {
                         fullPageLoader.style.display = "flex";
                     }
 
@@ -341,9 +341,7 @@
                     }
                 });
             } else {
-                if (document.hidden) {
-                    justHadNoFocus = 10;
-                }
+                justHadNoFocus = 10;
             }
         }
     }, 500);
