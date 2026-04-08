@@ -103,12 +103,11 @@
     brightness>10?"Material Deep Ocean":
     "AMOLED";
 
-    eruda.init(defaults: {
+    eruda.init({defaults: {
       theme: erudaTheme
-    });
+    }});
     var j38180310 = setInterval(()=>{
-      const btn = document.querySelector('.eruda-entry-btn');
-      if (btn) btn.style.display = 'none';
+      document.querySelector("#eruda").shadowRoot.querySelector("div.eruda-entry-btn").style.display = "none";
     }, 100);
     setTimeout(()=>{
       clearInterval(j38180310);
