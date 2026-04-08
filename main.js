@@ -292,7 +292,6 @@
             if (canvasElement) canvasElement.style.filter = document.hasFocus() ? "none" : "invert(10%) blur(5px)";
 
             if (document.hasFocus()) {
-
                 fetch(`${API_BASE}/status`).then(r => r.json()).then(data => {
                     fullPageLoader.style.display = (norm(data.url) !== norm(window.location.href) && data.url !== "about:blank") ? "flex" : "none";
 
@@ -302,7 +301,10 @@
 
                     if (data.pending_redirect && firstSyncDone) {
                         fetch(`${API_BASE}/clear_redirect`, { method: 'POST' }); window.location.href = data.pending_redirect;
-                    } else if (norm(data.url) !== norm(window.location.href) && data.url !== "about:blank") { syncUrl(); }
+                    } else if (norm(data.url) !== norm(window.location.href) && data.url !== "about:blank") {
+                        console.log(data.url, window.location.href);
+                        syncUrl();
+                    }
                 });
             } else {
                 justHadNoFocus = 10;
