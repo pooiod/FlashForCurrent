@@ -9,6 +9,28 @@
 
     window.HasFlashForCurrent = true;
 
+    function StopTimedThings() {
+        let id = window.setTimeout(() => {}, 0);
+        while (id--) {
+            window.clearTimeout(id);
+            window.clearInterval(id);
+        }
+
+        let frameId = window.requestAnimationFrame(() => {});
+        while (frameId--) {
+            window.cancelAnimationFrame(frameId);
+        }
+
+        const newBody = document.body.cloneNode(true);
+        document.body.parentNode.replaceChild(newBody, document.body);
+
+        if (navigator.serviceWorker) {
+            navigator.serviceWorker.getRegistrations().then(regs => {
+                for (let reg of regs) reg.unregister();
+            });
+        }
+    }
+
     const getThemeColors = () => {
         let style = getComputedStyle(document.body).backgroundColor;
         if (!style || style === "transparent" || style === "rgba(0, 0, 0, 0)") {
@@ -149,6 +171,8 @@
         if (ws_stream) {
             ws_stream.onclose = null;
             if (ws_stream.readyState !== WebSocket.CLOSED) ws_stream.close();
+        } else {
+            StopTimedThings();
         }
 
         ws_stream = new WebSocket(WS_URL_STREAM);
@@ -292,7 +316,13 @@
 
     window.fetchinterval85025 = setInterval(() => {
         if (!isFlashMode) {
-            if (isFlash() && document.hasFocus()) fetch(`${API_BASE}/status`).then(initStreaming).catch(() => showPrompt());
+            if (isFlash() && document.hasFocus()) {
+                fetch(`${API_BASE}/status`)
+                    .then(initStreaming)
+                    .catch(() => {
+                        showPrompt();
+                    });
+            }
         } else {
             if (canvasElement) canvasElement.style.filter = document.hasFocus() ? "none" : "invert(10%) blur(5px)";
 
