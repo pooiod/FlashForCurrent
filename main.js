@@ -277,6 +277,7 @@
         if (isFlashMode) fetch(`${API_BASE}/keep_alive`, { method: 'POST' }).catch(() => { });
     }, 30000);
 
+    var justHadNoFocus = false
     window.fetchinterval85025 = setInterval(() => {
         if (!isFlashMode) {
             if (isFlash() && document.hasFocus()) fetch(`${API_BASE}/status`).then(initStreaming).catch(() => showPrompt());
@@ -284,6 +285,12 @@
             if (canvasElement) canvasElement.style.filter = document.hasFocus() ? "none" : "invert(10%) blur(5px)";
 
             if (document.hasFocus()) {
+                if (justHadNoFocus) {
+                    fullPageLoader.style.display = "flex";
+                    justHadNoFocus = false;
+                    return;
+                }
+
                 fetch(`${API_BASE}/status`).then(r => r.json()).then(data => {
                     fullPageLoader.style.display = (norm(data.url) !== norm(window.location.href) && data.url !== "about:blank") ? "flex" : "none";
 
@@ -291,6 +298,8 @@
                         fetch(`${API_BASE}/clear_redirect`, { method: 'POST' }); window.location.href = data.pending_redirect;
                     } else if (norm(data.url) !== norm(window.location.href) && data.url !== "about:blank") { syncUrl(); }
                 });
+            } else {
+                justHadNoFocus = true;
             }
         }
     }, 500);
