@@ -265,7 +265,7 @@
         n.innerHTML = `
             <div style='font-weight:bold;margin-bottom:8px;font-size:15px;'>Unable to load flash content</div>
             <div style='font-size:13px;line-height:1.4;margin-bottom:15px;'>Please install the flash helper to view flash content on this page.</div>
-            <a href='https://github.com/pooiod/FlashForCurrent/releases/latest' target='_blank' style='display:inline-block;background:#3498db;color:#fff;text-decoration:none;padding:8px 12px;font-size:12px;font-weight:bold;border-radius:2px;'>Download helper</a>
+            <a href='https://flashforcurrent.pages.dev/installer' target='_blank' style='display:inline-block;background:#3498db;color:#fff;text-decoration:none;padding:8px 12px;font-size:12px;font-weight:bold;border-radius:2px;'>Download helper</a>
             <button onclick="document.getElementById('flash-prompt')?.remove();clearInterval(fetchinterval85025);" style='display:inline-block;border:none;background:#3498db;color:#fff;text-decoration:none;padding:8px 12px;font-size:12px;font-weight:bold;border-radius:2px;'>Nah, I'm good</button>
         `;
         document.body.appendChild(n);

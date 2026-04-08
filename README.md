@@ -12,7 +12,10 @@ and you must install the helper app.
 
 * [Download Userscript](https://flashforcurrent.pages.dev/script.user.js)
 * [Download Browser Extension](https://flashforcurrent.pages.dev/ext)
-* [Download Helper App](https://github.com/FlashForCurrent/HelperApp/releases)
+* [Download Helper App](https://flashforcurrent.pages.dev/installer)
+
+> If you download from [GitHub releases](https://github.com/FlashForCurrent/HelperApp/releases)
+> you will need to manually place the file in `%appdata%\Microsoft\Windows\Start Menu\Programs\Startup`
 
 ## How It Works
 FlashForCurrent works by using the original PepperFlash.
