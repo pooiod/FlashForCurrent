@@ -285,21 +285,24 @@
             if (canvasElement) canvasElement.style.filter = document.hasFocus() ? "none" : "invert(10%) blur(5px)";
 
             if (document.hasFocus()) {
-                if (justHadNoFocus) {
+                if (justHadNoFocus > 0 || document.hidden) {
                     fullPageLoader.style.display = "flex";
-                    justHadNoFocus = false;
-                    return;
                 }
 
                 fetch(`${API_BASE}/status`).then(r => r.json()).then(data => {
                     fullPageLoader.style.display = (norm(data.url) !== norm(window.location.href) && data.url !== "about:blank") ? "flex" : "none";
+
+                    if (justHadNoFocus > 0) {
+                        fullPageLoader.style.display = "flex";
+                        justHadNoFocus -= 1;
+                    }
 
                     if (data.pending_redirect && firstSyncDone) {
                         fetch(`${API_BASE}/clear_redirect`, { method: 'POST' }); window.location.href = data.pending_redirect;
                     } else if (norm(data.url) !== norm(window.location.href) && data.url !== "about:blank") { syncUrl(); }
                 });
             } else {
-                justHadNoFocus = true;
+                justHadNoFocus = 5;
             }
         }
     }, 500);
