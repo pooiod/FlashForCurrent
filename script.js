@@ -115,13 +115,15 @@
   };
   document.head.appendChild(erudascript);
 
-  document.addEventListener('keydown', function (e) {
-    if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'i') {
+  document.addEventListener('keydown', function (event) {
+    if (event.ctrlKey && event.shiftKey && event.key === 'I') {
       if (window.eruda) {
         if (eruda._isShow) {
           eruda.hide();
+          eruda._isShow = false;
         } else {
           eruda.show();
+          eruda._isShow = true;
         }
       }
     }
