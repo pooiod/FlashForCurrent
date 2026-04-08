@@ -285,6 +285,11 @@
         }
     }, 100);
 
+    function isTheSame(txt1, txt2){
+        return txt1 == txt2
+            || decodeURIComponent(txt1).toLowerCase().replace(/\s+/g,'') == decodeURIComponent(txt2).toLowerCase().replace(/\s+/g,'');
+    }
+
     window.fetchinterval85025 = setInterval(() => {
         if (!isFlashMode) {
             if (isFlash() && document.hasFocus()) fetch(`${API_BASE}/status`).then(initStreaming).catch(() => showPrompt());
@@ -301,7 +306,7 @@
 
                     if (data.pending_redirect && firstSyncDone) {
                         fetch(`${API_BASE}/clear_redirect`, { method: 'POST' }); window.location.href = data.pending_redirect;
-                    } else if (norm(data.url) !== norm(window.location.href) && data.url !== "about:blank") {
+                    } else if (!isTheSame(norm(data.url), norm(window.location.href))) {
                         console.log(data.url, window.location.href);
                         syncUrl();
                     }
