@@ -156,12 +156,6 @@
         fetch(`${API_BASE}/set_url`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: window.location.href }) })
             .then(() => {
                 firstSyncDone = true;
-                if (canvasElement) {
-                    canvasElement.width = window.innerWidth;
-                    canvasElement.height = window.innerHeight;
-                    ctx.fillStyle = theme.background;
-                    ctx.fillRect(0, 0, canvasElement.width, canvasElement.height);
-                }
                 fetch(`${API_BASE}/set_size`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ width: window.innerWidth, height: window.innerHeight }) });
             });
     }
@@ -336,12 +330,25 @@
                         fullPageLoader.style.display = "flex";
                     }
 
+                    function sameBaseDomain(url1, url2) {
+                        const getBase = u => {
+                            const h = new URL(u).hostname.split('.')
+                            return h.slice(-2).join('.')
+                        }
+                        return getBase(url1) === getBase(url2)
+                    }
+
                     if (data.pending_redirect && firstSyncDone) {
                         if (data.url == "about:blank") return;
                         fetch(`${API_BASE}/clear_redirect`, { method: 'POST' }); window.location.href = data.pending_redirect;
                     } else if (!isTheSame(norm(data.url), norm(window.location.href))) {
                         console.log(data.url, window.location.href);
-                        syncUrl();
+                        if (sameBaseDomain(data.url, window.location.href)) {
+                            const url1 = new URL(data.url, window.location.origin)
+                            history.replaceState({}, '', url1)
+                        } else {
+                            syncUrl();
+                        }
                     }
                 });
             } else {
