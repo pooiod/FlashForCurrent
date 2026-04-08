@@ -105,6 +105,7 @@
     };
 
     const theme = getThemeColors();
+    window.FlashTheme283 = theme;
 
     let isFlashMode = false, ws_stream = null, ws_input = null, canvasElement = null, ctx = null, miniLoader = null, fullPageLoader = null, firstSyncDone = false;
     let nextFrameMeta = { x: 0, y: 0 };
@@ -263,6 +264,7 @@
                 alt: e.altKey,
                 isRepeat: e.repeat
             });
+            if (e.ctrlKey && e.key == 'I') console.log("This console is for debugging the stream. If you need to debug you flash content you should direct your attention to the horizontal console.");
         }, true);
 
         window.addEventListener('keyup', (e) => {
@@ -343,7 +345,9 @@
                     }
                 });
             } else {
-                justHadNoFocus = 10;
+                if (document.hidden) {
+                    justHadNoFocus = 10;
+                }
             }
         }
     }, 500);
