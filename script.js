@@ -83,55 +83,62 @@
     }
   }
 
-  const erudascript = document.createElement('script');
-  erudascript.src = 'https://cdn.jsdelivr.net/npm/eruda';
-  erudascript.onload = function () {
-    const [r,g,b]=theme.background.match(/\d+/g).map(Number);
-    const brightness=(r*299+g*587+b*114)/1000;
+  if (!window.eruda) {
+    const erudascript = document.createElement('script');
+    erudascript.src = 'https://cdn.jsdelivr.net/npm/eruda';
+    erudascript.onload = function () {
+      const [r,g,b]=theme.background.match(/\d+/g).map(Number);
+      const brightness=(r*299+g*587+b*114)/1000;
 
-    const erudaTheme =
-    brightness>230?"Light":
-    brightness>200?"Material Lighter":
-    brightness>170?"Solarized Light":
-    brightness>140?"Github":
-    brightness>110?"Material Oceanic":
-    brightness>90?"Atom One Light":
-    brightness>70?"Material Palenight":
-    brightness>50?"Dracula":
-    brightness>35?"Monokai Pro":
-    brightness>20?"Atom One Dark":
-    brightness>10?"Material Deep Ocean":
-    "AMOLED";
+      const erudaTheme =
+        brightness>230?"Light":
+        brightness>200?"Material Lighter":
+        brightness>170?"Solarized Light":
+        brightness>140?"Github":
+        brightness>110?"Material Oceanic":
+        brightness>90?"Atom One Light":
+        brightness>70?"Material Palenight":
+        brightness>50?"Dracula":
+        brightness>35?"Monokai Pro":
+        brightness>20?"Atom One Dark":
+        brightness>10?"Material Deep Ocean":
+      "AMOLED";
 
-    eruda.init({defaults: {
-      theme: erudaTheme
-    }});
-    var j38180310 = setInterval(()=>{
-      document.querySelector("#eruda").shadowRoot.querySelector("div.eruda-entry-btn").style.display = "none";
-    }, 100);
-    setTimeout(()=>{
-      clearInterval(j38180310);
-    }, 3000);
-  };
-  document.head.appendChild(erudascript);
+      eruda.init({defaults: {
+        theme: erudaTheme
+      }});
 
-  document.addEventListener('keydown', function (event) {
-    if (event.ctrlKey && event.shiftKey && event.key === 'I') {
-      if (window.eruda) {
-        if (eruda._isShow) {
-          eruda.hide();
-          eruda._isShow = false;
-        } else {
-          eruda.show();
-          eruda._isShow = true;
+      document.addEventListener('keydown', function (event) {
+        if (event.ctrlKey && event.shiftKey && event.key === 'I') {
+          if (eruda._isShow) {
+            eruda.hide();
+            eruda._isShow = false;
+          } else {
+            eruda.show();
+            eruda._isShow = true;
+          }
         }
-      }
-    }
-  });
+      });
+
+      var j38180310 = setInterval(()=>{
+        document.querySelector("#eruda").shadowRoot.querySelector("div.eruda-entry-btn").style.display = "none";
+      }, 100);
+      setTimeout(()=>{
+        clearInterval(j38180310);
+      }, 3000);
+      setTimeout(()=>{
+        eruda.settings.set('theme', erudaTheme);
+      }, 1000);
+    };
+    document.head.appendChild(erudascript);
+  }
 
   document.addEventListener('keydown', function(event) {
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'r') {
       window.location.reload();
+    }
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'w') {
+      window.location.href == "https://flashforcurrent.pages.dev/blank";
     }
   });
 })();

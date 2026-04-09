@@ -9,6 +9,13 @@
 
     window.HasFlashForCurrent = true;
 
+    function isFlash() {
+        if (FLASH_DOMAINS.includes(window.location.hostname)) return true;
+        return !!document.querySelector('object, embed[type*="flash"], img[alt*="Get Flash" i]');
+    }
+
+    if (isFlash()) StopTimedThings();
+
     function StopTimedThings() {
         let id = window.setTimeout(() => {}, 0);
         while (id--) {
@@ -106,13 +113,6 @@
 
     let isFlashMode = false, ws_stream = null, ws_input = null, canvasElement = null, ctx = null, miniLoader = null, fullPageLoader = null, firstSyncDone = false;
     let nextFrameMeta = { x: 0, y: 0 };
-
-    function isFlash() {
-        if (FLASH_DOMAINS.includes(window.location.hostname)) return true;
-        return !!document.querySelector('object, embed[type*="flash"], img[alt*="Get Flash" i]');
-    }
-
-    if (isFlash()) StopTimedThings();
 
     function norm(url) { return url.replace(/\/$/, "").toLowerCase(); }
 
@@ -245,7 +245,6 @@
         window.addEventListener('mouseup', (e) => sendR({ type: 'mouse_click', act: 'mouseup', button: e.button, ...getPct(e) }));
         window.addEventListener('keydown', (e) => {
             if (e.ctrlKey && (
-                e.key === 'w' ||
                 e.key === 'u' ||
                 e.key === 'p' ||
                 (e.key === 'J' || e.key === 'j')
@@ -261,10 +260,14 @@
                 alt: e.altKey,
                 isRepeat: e.repeat
             });
-            if (e.ctrlKey && e.key == 'I') console.log("This console is for debugging the stream. If you need to debug you flash content you should direct your attention to the horizontal console.");
             if (e.key == 'r') {
                 setTimeout(function() {
                     location.reload();
+                }, 500);
+            }
+            if (e.key == 'w') {
+                setTimeout(function() {
+                    window.close();
                 }, 500);
             }
         }, true);
@@ -325,6 +328,9 @@
     window.fetchinterval85025 = setInterval(() => {
         if (!isFlashMode) {
             if (isFlash() && document.hasFocus()) {
+                console.log("This console is for debugging the stream. If you need to debug you flash content you should direct your attention to the horizontal console.");
+                window.FlashForCurrentStreamingMode = true;
+
                 setInterval(() => {
                     fetch(`${API_BASE}/set_size`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ width: window.innerWidth, height: window.innerHeight }) });
                 }, 1000);
