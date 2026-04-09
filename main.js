@@ -325,6 +325,9 @@
     window.fetchinterval85025 = setInterval(() => {
         if (!isFlashMode) {
             if (isFlash() && document.hasFocus()) {
+                setInterval(() => {
+                    fetch(`${API_BASE}/set_size`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ width: window.innerWidth, height: window.innerHeight }) });
+                }, 1000);
                 fetch(`${API_BASE}/status`)
                     .then(initStreaming)
                     .catch(() => {
