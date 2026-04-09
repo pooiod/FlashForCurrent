@@ -9,6 +9,76 @@
 // ==/UserScript==
 
 (function() {
+    const fakeFlashPlugin = {
+        name: "Shockwave Flash",
+        description: "Shockwave Flash 32.0"
+    };
+
+    const fakeMimeType = {
+        enabledPlugin: fakeFlashPlugin,
+        type: "application/x-shockwave-flash"
+    };
+
+    if (!navigator.__proto__._plugins) {
+        navigator.__proto__._plugins = [...navigator.plugins];
+    }
+
+    if (!navigator.__proto__._mimeTypes) {
+        navigator.__proto__._mimeTypes = { ...navigator.mimeTypes };
+    }
+
+    Object.defineProperty(navigator.__proto__, "plugins", {
+        get: function() {
+            return [...this._plugins, fakeFlashPlugin];
+        }
+    });
+
+    Object.defineProperty(navigator.__proto__, "mimeTypes", {
+        get: function() {
+            return { ...this._mimeTypes, "application/x-shockwave-flash": fakeMimeType };
+        }
+    });
+
+    const originalCreateElement = Document.prototype.createElement;
+    Document.prototype.createElement = function(tag) {
+        const element = originalCreateElement.call(this, tag);
+        if (tag.toLowerCase() === "object") {
+            Object.defineProperty(element, "type", {
+                get: function() {
+                    return "application/x-shockwave-flash";
+                },
+                set: function() {}
+            });
+        }
+        return element;
+    };
+
+    const originalQuerySelector = Document.prototype.querySelector;
+    Document.prototype.querySelector = function(selector) {
+        if (selector && selector.toLowerCase().includes("object[type='application/x-shockwave-flash']")) {
+            const obj = document.createElement("object");
+            obj.type = "application/x-shockwave-flash";
+            return obj;
+        }
+        return originalQuerySelector.call(this, selector);
+    };
+
+    const originalQuerySelectorAll = Document.prototype.querySelectorAll;
+    Document.prototype.querySelectorAll = function(selector) {
+        if (selector && selector.toLowerCase().includes("object[type='application/x-shockwave-flash']")) {
+            return [document.createElement("object")];
+        }
+        return originalQuerySelectorAll.call(this, selector);
+    };
+
+    const originalIncludes = String.prototype.includes;
+    String.prototype.includes = function(search, ...args) {
+        if (["flash", "shockwaveflash", "application/x-shockwave-flash"].includes(search.toLowerCase())) {
+            return true;
+        }
+        return originalIncludes.call(this, search, ...args);
+    };
+
     const loader = document.createElement('div');
     loader.id = 'dynamic-script-loader-34924';
     loader.innerHTML = '<div class="spin-4534ner-28420249"></div>';
