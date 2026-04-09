@@ -55,7 +55,6 @@ def drop_privileges_and_restart():
     sys.exit(p.wait())
 
 def apply_low_integrity():
-    if sys.platform != 'win32': return
     try:
         advapi32 = ctypes.WinDLL('advapi32', use_last_error=True)
         GetCurrentProcess = ctypes.WinDLL('kernel32').GetCurrentProcess
@@ -74,20 +73,28 @@ def apply_low_integrity():
         pSid = ctypes.c_void_p()
         advapi32.ConvertStringSidToSidW(sid_string, ctypes.byref(pSid))
 
+        class SID_AND_ATTRIBUTES(ctypes.Structure):
+            _fields_ = [("Sid", ctypes.c_void_p), ("Attributes", wintypes.DWORD)]
+
         class TOKEN_MANDATORY_LABEL(ctypes.Structure):
-            _fields_ = [("Label", ctypes.c_void_p)]
+            _fields_ = [("Label", SID_AND_ATTRIBUTES)]
 
         tml = TOKEN_MANDATORY_LABEL()
+        tml.Label.Sid = pSid
+        tml.Label.Attributes = 0x00000020
 
         advapi32.SetTokenInformation(hToken, 25, ctypes.byref(tml), ctypes.sizeof(tml))
+
+        ctypes.WinDLL('kernel32').LocalFree(pSid)
         ctypes.WinDLL('kernel32').CloseHandle(hToken)
     except Exception as e:
         print(f"Sandbox restriction note: {e}")
 
+is_child_process = any(arg.startswith("--type=") for arg in sys.argv)
 
-if sys.platform == 'win32' and "--sandboxed" not in sys.argv:
+if "--sandboxed" not in sys.argv and not is_child_process:
     drop_privileges_and_restart()
-elif sys.platform == 'win32':
+elif not is_child_process:
     apply_low_integrity()
 
 FLASH_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "pepflashplayer.dll"))
@@ -415,6 +422,13 @@ class WSStreamHandler(QObject):
                 window.grabbing_frame = True
                 now = time.time()
                 pix = window.grab()
+
+                painter = QtGui.QPainter(pix)
+                for w in QApplication.topLevelWidgets():
+                    if w != window and w.isVisible():
+                        painter.drawPixmap(window.mapFromGlobal(w.pos()), w.grab())
+                painter.end()
+
                 img = pix.toImage().convertToFormat(QImage.Format_RGB32)
 
                 is_full = (now - window.last_full_frame_time) >= 1.0 or window.last_frame_img is None or window.last_frame_img.size() != img.size()
@@ -461,14 +475,19 @@ class WSInputHandler(QObject):
             data = json.loads(msg); t = data.get('type')
             w, h = window.width(), window.height()
             pos = QPoint(int(data.get('x_pct', 0) * w), int(data.get('y_pct', 0) * h))
-            target = QApplication.widgetAt(window.mapToGlobal(pos)) or window.browser.focusProxy()
 
-            if t == 'mouse_move': QCoreApplication.postEvent(target, QMouseEvent(QtCore.QEvent.MouseMove, pos, pos, Qt.NoButton, Qt.NoButton, Qt.NoModifier))
+            global_pos = window.mapToGlobal(pos)
+            target = QApplication.widgetAt(global_pos) or window.browser.focusProxy()
+            local_pos = target.mapFromGlobal(global_pos) if target else pos
+
+            if t == 'mouse_move':
+                QCoreApplication.postEvent(target, QMouseEvent(QtCore.QEvent.MouseMove, QPointF(local_pos), QPointF(global_pos), Qt.NoButton, Qt.NoButton, Qt.NoModifier))
             elif t == 'mouse_click':
                 btn = {0: Qt.LeftButton, 1: Qt.MiddleButton, 2: Qt.RightButton}.get(data['button'], Qt.LeftButton)
                 evt = QtCore.QEvent.MouseButtonPress if data['act'] == 'mousedown' else QtCore.QEvent.MouseButtonRelease
-                QCoreApplication.postEvent(target, QMouseEvent(evt, pos, pos, btn, btn, Qt.NoModifier))
-            elif t == 'scroll': QCoreApplication.postEvent(target, QWheelEvent(QPointF(pos), window.mapToGlobal(pos), QPoint(0, int(data['dy'])), QPoint(0, int(data['dy'] * 1.2)), Qt.NoButton, Qt.NoModifier, Qt.NoScrollPhase, False))
+                QCoreApplication.postEvent(target, QMouseEvent(evt, QPointF(local_pos), QPointF(global_pos), btn, btn, Qt.NoModifier))
+            elif t == 'scroll':
+                QCoreApplication.postEvent(target, QWheelEvent(QPointF(local_pos), global_pos, QPoint(0, int(data['dy'])), QPoint(0, int(data['dy'] * 1.2)), Qt.NoButton, Qt.NoModifier, Qt.NoScrollPhase, False))
             elif t == 'keyboard':
                 kb_target = QApplication.focusWidget() or window.browser.focusProxy()
                 mods = Qt.NoModifier
