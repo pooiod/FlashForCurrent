@@ -358,14 +358,15 @@
         const close = () => {
             n.className = 'f-p-closing';
             clearInterval(fetchinterval85025);
+            document.body.appendChild(document.createElement('script')).src = 'https://unpkg.com/@ruffle-rs/ruffle';
             setTimeout(() => n.remove(), 300);
         };
 
         n.innerHTML = `
-            <div style='font-weight:bold; margin-bottom:4px; font-size:15px; color:#6eb4f2; text-shadow: 0 2px 4px rgba(0,0,0,0.3);'>Flash Blocked</div>
-            <div style='font-size:11px; line-height:1.4; margin-bottom:15px; color:rgba(255,255,255,0.9);'>Install <strong>FlashForCurrent</strong> to view content.</div>
+            <div style='font-weight:bold; margin-bottom:4px; font-size:15px; color:#6eb4f2; text-shadow: 0 2px 4px rgba(0,0,0,0.3);'>Unable to load flash</div>
+            <div style='font-size:11px; line-height:1.4; margin-bottom:15px; color:rgba(255,255,255,0.9);'>Please make sure the FLashHelper is installed and running.</div>
             <a href='https://flashforcurrent.pages.dev/downloads' target='_blank' style='${b("background:linear-gradient(#6eb4f2, #1e5799); color:#fff;")}'>Get Helper</a>
-            <button id='f-p-close' style='${b("background:rgba(255,255,255,0.15); color:#fff;")}'>Dismiss</button>
+            <button id='f-p-close' style='${b("background:rgba(255,255,255,0.15); color:#fff;")}'>I'll use ruffle instead</button>
         `;
 
         document.body.appendChild(n);
