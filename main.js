@@ -10,11 +10,11 @@
     window.HasFlashForCurrent = true;
 
     function isFlash() {
-        var UsingFlash = window.HasFlashForCurrent ||
+        var UsingFlash = window.ShouldUseFlashForCurrent ||
             (document.querySelector('object, embed[type*="flash"], img[alt*="Get Flash" i]')) ||
-            /** (Array.from(document.scripts).some(s =>
+            (Array.from(document.scripts).some(s =>
                 ['swfobject','flashobject','jquery.flash','flash.js','swf.js']
-                    .some(lib => s.src.toLowerCase().includes(lib)))) || */
+                    .some(lib => s.src.toLowerCase().includes(lib)))) ||
             FLASH_DOMAINS.includes(window.location.hostname);
         return UsingFlash;
     }
