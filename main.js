@@ -9,49 +9,9 @@
 
     window.HasFlashForCurrent = true;
 
-    async function getAllScriptContents() {
-        const scripts = [...document.getElementsByTagName("script")]
-        const results = []
-
-        for (const s of scripts) {
-            if (s.src) {
-                try {
-                    const res = await fetch(s.src)
-                    const text = await res.text()
-                    results.push(text)
-                } catch {}
-            } else {
-                results.push(s.textContent || "")
-            }
-        }
-
-        return results
-    }
-
-    async function pageChecksForFlashInstallation() {
-        const scripts = await getAllScriptContents()
-
-        return scripts.some(code => {
-            const c = code.toLowerCase()
-
-            var result =  (
-                (c.includes("navigator.plugins") && c.includes("flash")) ||
-                (c.includes("navigator.mimetypes") && c.includes("shockwave")) ||
-                (c.includes("activexobject") && c.includes("shockwaveflash")) ||
-                (c.includes("application/x-shockwave-flash")) ||
-                (c.includes("shockwaveflash")) ||
-                ((c.includes("plugin") || c.includes("mime")) && c.includes("flash"))
-            );
-
-            window.ShouldUseFlashForCurrent == result
-            return result;
-        })
-    }
-
-    pageChecksForFlashInstallation().then(status => window.ShouldUseFlashForCurrent == status);
-
     function isFlash() {
-        var UsingFlash = FLASH_DOMAINS.includes(window.location.hostname) ||
+        var UsingFlash = window.HasFlashForCurrent ||
+            FLASH_DOMAINS.includes(window.location.hostname) ||
             (document.querySelector('object, embed[type*="flash"], img[alt*="Get Flash" i]')) ||
             (Array.from(document.scripts).some(s =>
                 ['swfobject','flashobject','jquery.flash','flash.js','swf.js']
