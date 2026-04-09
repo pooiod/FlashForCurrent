@@ -358,7 +358,11 @@
         const close = () => {
             n.className = 'f-p-closing';
             clearInterval(fetchinterval85025);
-            document.body.appendChild(document.createElement('script')).src = 'https://unpkg.com/@ruffle-rs/ruffle';
+            if (!window.RufflePlayer) {
+                const script = document.createElement('script');
+                script.src = 'https://unpkg.com/@ruffle-rs/ruffle';
+                document.body.appendChild(script);
+            }
             setTimeout(() => n.remove(), 300);
         };
 
