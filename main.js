@@ -51,7 +51,7 @@
     pageChecksForFlashInstallation().then(status => window.ShouldUseFlashForCurrent == status);
 
     function isFlash() {
-        var UsingFlash == FLASH_DOMAINS.includes(window.location.hostname) ||
+        var UsingFlash = FLASH_DOMAINS.includes(window.location.hostname) ||
             (document.querySelector('object, embed[type*="flash"], img[alt*="Get Flash" i]')) ||
             (Array.from(document.scripts).some(s =>
                 ['swfobject','flashobject','jquery.flash','flash.js','swf.js']
